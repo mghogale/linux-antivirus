@@ -1,1 +1,4 @@
-Repository for sys sec project
+HOW TO RUN THE ANTIVIRUS ?
+1. do make in the directory
+2. run 'sh install.sh'
+3. you are now secured !
