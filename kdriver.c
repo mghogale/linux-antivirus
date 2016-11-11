@@ -12,6 +12,9 @@
 #define PROC_V    "/proc/version"
 #define BOOT_PATH "/boot/System.map-"
 #define MAX_VERSION_LEN   256
+
+struct virus_def *vdef;
+
 unsigned long *syscall_table = NULL;
 asmlinkage int (*original_write) (unsigned int, const char __user *, size_t);
 asmlinkage long (*original_read) (unsigned int, char __user *, size_t);
@@ -23,8 +26,8 @@ static int get_system_call_table(char *kern_ver)
 	char system_map_entry[MAX_VERSION_LEN];
 	int i = 0;
 	
-	    /*\n
-	     * Holds the /boot/System.map-<version> file name while it's been built\n
+	    /*
+	     * Holds the /boot/System.map-<version> file name while it's been built
 	     */ 
 	char *filename;
 	
@@ -38,10 +41,12 @@ static int get_system_call_table(char *kern_ver)
 	     */ 
 	struct file *f = NULL;
 	mm_segment_t oldfs;
+
 	oldfs = get_fs();
 	set_fs(KERNEL_DS);
 	printk(KERN_EMERG "Kernel version: %s", kern_ver);
 	filename = kmalloc(filename_length, GFP_KERNEL);
+
 	if (filename == NULL) {
 		printk(KERN_EMERG
 			"kmalloc failed on System.map-<version> filename allocation");
@@ -189,7 +194,6 @@ asmlinkage long new_open(const char __user * path, int flags, umode_t mode)
 {
 	char *kpath;
 	struct file *filp;
-	struct virus_def *vdef;
 	struct file_data *fdata;
 	long err = 0;
 	
@@ -209,8 +213,9 @@ asmlinkage long new_open(const char __user * path, int flags, umode_t mode)
 		printk(KERN_ERR "cannot open virus definitions\n");
 		goto out;
 	}
-	vdef = read_virus_def();
 	if (vdef == NULL) {
+	       vdef = read_virus_def();
+	       if (vdef == NULL)
 	       goto out_close;
 	}
 	printk(KERN_INFO "VDEF: data read is %s\n", vdef->buff);
@@ -220,16 +225,16 @@ asmlinkage long new_open(const char __user * path, int flags, umode_t mode)
 			"error occured while reading from file to scan\n");
 		goto out_vdef;
 	}
-	while (fdata->file_exhausted != 1) {
-		printk("data read from input file is %s\n", fdata->buff);
-	}
 	printk("FDATA: file exhausted %d\n", fdata->file_exhausted);
 	kfree(fdata);
 	fdata = NULL;
- out_vdef:kfree(vdef);
+ out_vdef:
+	kfree(vdef);
 	vdef = NULL;
- out_close:filp_close(filp, NULL);
- out:	kfree(kpath);
+ out_close:
+	filp_close(filp, NULL);
+ out:	
+	kfree(kpath);
 	kpath = NULL;
 	return original_open(path, flags, mode);
 }
@@ -259,6 +264,7 @@ static int __init on_init(void)
 		syscall_table[__NR_open] = (unsigned long) &new_open;
 		write_cr0(read_cr0() | 0x10000);
 		printk(KERN_EMERG "[+] onload: sys_call_table hooked\n");
+		vdef = read_virus_def();
 	} else {
 		printk(KERN_EMERG "[-] onload: syscall_table is NULL\n");
 	}
@@ -285,6 +291,7 @@ static void __exit on_exit(void)
 		    /* mark the area again as read only */
 		    write_cr0(read_cr0() | 0x10000);
 		printk(KERN_EMERG "[+] on_exit: sys_call_table unhooked\n");
+		kfree(vdef);
 	} else {
 		printk(KERN_EMERG "[-] on_exit: syscall_table is NULL\n");
 	 }

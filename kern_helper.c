@@ -137,6 +137,7 @@ struct virus_def *read_virus_def(void){
     goto out_free;
   }
 
+  printk(KERN_INFO "virus definitions loaded\n");
  return vdef;
 
  out_free:

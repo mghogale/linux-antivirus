@@ -11,7 +11,7 @@
 #include <asm/paravirt.h>  /* write_cr0 */
 #include <asm/uaccess.h>   /* needed for kmalloc and kfree and et.el*/
 
-#define VIRUS_DB_FILE "/tmp/virus.db"
+#define VIRUS_DB_FILE "/root/virus.db"
 
 #define TMP_TEST_PATH "/home/"
 #define TMP_SIZE 10
