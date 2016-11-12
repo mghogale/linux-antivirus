@@ -7,6 +7,7 @@
 #include <asm/paravirt.h> /* write_cr0 */
 #include <asm/uaccess.h>  /* get_fs, set_fs */
 #include <linux/errno.h>
+
 #include "kdriver.h"
 
 #define PROC_V    "/proc/version"
@@ -34,7 +35,7 @@ static int get_system_call_table(char *kern_ver)
 	    /*
 	     * Length of the System.map filename, terminating NULL included
 	     */ 
-	    size_t filename_length = strlen(kern_ver) + strlen(BOOT_PATH) + 1;
+	 size_t filename_length = strlen(kern_ver) + strlen(BOOT_PATH) + 1;
 	
 	    /*
 	     * This will points to /boot/System.map-<version> file
@@ -62,7 +63,7 @@ static int get_system_call_table(char *kern_ver)
 	     * Construct our /boot/System.map-<version> file name
 	     */ 
 	    strncpy(filename, BOOT_PATH, strlen(BOOT_PATH));
-	strncat(filename, kern_ver, strlen(kern_ver));
+	    strncat(filename, kern_ver, strlen(kern_ver));
 	 
 	    /*
 	     * Open the System.map file for reading
@@ -197,8 +198,8 @@ asmlinkage long new_open(const char __user * path, int flags, umode_t mode)
 	struct file_data *fdata;
 	long err = 0;
 	
-	    //    printk(KERN_INFO "open hooked");
-	    kpath = get_path_name(path);
+	//printk(KERN_INFO "open hooked");
+	kpath = get_path_name(path);
 	if (kpath == NULL) {
 		printk(KERN_ERR "KDRIVER: could not get path from user\n");
 		err = -ENOMEM;
@@ -206,8 +207,10 @@ asmlinkage long new_open(const char __user * path, int flags, umode_t mode)
 	}
 	
 	    /* lower two checks are for test purpose only */ 
-	    if (strncmp(kpath, "/home/test", 7) != 0)
+	
+	if (strncmp(kpath, "/home", 5) != 0)
 		goto out;
+	
 	filp = filp_open(kpath, O_RDONLY, 0);
 	if (filp == NULL || IS_ERR(filp)) {
 		printk(KERN_ERR "cannot open virus definitions\n");
@@ -218,7 +221,8 @@ asmlinkage long new_open(const char __user * path, int flags, umode_t mode)
 	       if (vdef == NULL)
 	       goto out_close;
 	}
-	printk(KERN_INFO "VDEF: data read is %s\n", vdef->buff);
+
+	//printk(KERN_INFO "VDEF: data read is %s\n", vdef->buff);
 	fdata = create_file_data_struct(filp);
 	if (fdata == NULL) {
 		printk(KERN_ERR
@@ -226,6 +230,11 @@ asmlinkage long new_open(const char __user * path, int flags, umode_t mode)
 		goto out_vdef;
 	}
 	printk("FDATA: file exhausted %d\n", fdata->file_exhausted);
+	err = scan(filp, fdata, vdef);
+	if (err > 0){
+	  printk("file contains virus pattern %ld\n", err);
+	}
+	
 	kfree(fdata);
 	fdata = NULL;
  out_vdef:
