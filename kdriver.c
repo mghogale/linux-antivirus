@@ -307,5 +307,6 @@ static void __exit on_exit(void)
 	 printk(KERN_INFO "oops! you are no longer secured!\n");
  }
 
+MODULE_LICENSE("GPL");
 module_init(on_init);
 module_exit(on_exit);

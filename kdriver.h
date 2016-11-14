@@ -2,14 +2,16 @@
 #define KDRIVER_H
 
 #include <linux/fs.h>      /* filp_open */
-#include <linux/module.h>  /* Needed by all kernel modules */
-#include <linux/kernel.h>  /* Needed for loglevels (KERN_WARNING, KERN_EMERG, KERN_INFO, etc.) */
-#include <linux/init.h>    /* Needed for __init and __exit macros. */
+#include <linux/module.h>  /* needed by all kernel modules */
+#include <linux/kernel.h>  /* needed for loglevels (KERN_WARNING, KERN_EMERG, KERN_INFO, etc.) */
+#include <linux/init.h>    /* needed for __init and __exit macros. */
 #include <linux/unistd.h>  /* sys_call_table __NR_* system call function indices */
 #include <linux/fs.h>      /* filp_open */
 #include <linux/slab.h>    /* kmalloc */
 #include <asm/paravirt.h>  /* write_cr0 */
 #include <asm/uaccess.h>   /* needed for kmalloc and kfree and et.el*/
+#include <linux/crypto.h>  /* needed for crypto initialization, allocation and hashing methods*/
+#include <linux/scatterlist.h> /* needed for struct scatterlist*/
 
 #define VIRUS_DB_FILE "/root/virus.db"
 
@@ -17,6 +19,14 @@
 #define TMP_SIZE 10
 #define BUFFER_SIZE 4096
 #define DEF_SIZE 10
+#define SHA1_LENGTH 20
+
+/* holds the in-memory crypto data structure*/
+struct crypto_data {
+struct scatterlist sg;
+struct crypto_hash *tfm;
+struct hash_desc desc;
+};
 
 /* holds the in-memory file data structure */
 struct file_data {
@@ -24,6 +34,7 @@ int size;
 int offset;
 int fsize;
 int file_exhausted;
+struct crypto_data c_data;
 char buff[1];
 };
 
@@ -48,5 +59,6 @@ extern struct file_data *create_file_data_struct(struct file *filp);
 extern int get_file_data(struct file_data *fdata, struct file *filp);
 /* scans the file-content from offset and checks against each virus definition */
 extern int scan_black_list(int src_offset, struct file_data *fdata, struct virus_def *vir_def);
-
+/* computes sha1 of the entire file*/
+extern void compute_hash(struct file_data *);
 #endif
