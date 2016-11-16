@@ -269,7 +269,6 @@ bool is_file_malicious(const char *path){
 asmlinkage long new_open(const char __user * path, int flags, umode_t mode)
 {
 	bool is_malicious = is_file_malicious(path);
-	//printk(KERN_INFO "open hooked");
 	if(!is_malicious)
 		return original_open(path, flags, mode);
 	else
@@ -278,8 +277,12 @@ asmlinkage long new_open(const char __user * path, int flags, umode_t mode)
 
 asmlinkage long new_execve(const char __user *filename, const char __user *const __user *argv, const char __user *const __user *envp)
 {
-	printk("\nIntercepted execve");
-	return original_execve(filename, argv, envp);
+        bool is_malicious = is_file_malicious(filename);
+	printk("\nIntercepted exexc");
+        if(!is_malicious)
+		return original_execve(filename, argv, envp);
+	else
+		return -EACCES;
 }
 
 
