@@ -14,12 +14,15 @@
 #include <linux/scatterlist.h> /* needed for struct scatterlist*/
 
 #define VIRUS_DB_FILE "/root/virus.db"
+#define WHITELIST_DB_FILE "/root/whitelist.db"
 
 #define TMP_TEST_PATH "/home/"
 #define TMP_SIZE 10
 #define BUFFER_SIZE 4096
 #define DEF_SIZE 10
 #define SHA1_LENGTH 20
+
+extern struct white_list_data *head;
 
 /* holds the in-memory crypto data structure*/
 struct crypto_data {
@@ -45,6 +48,12 @@ int offset;
 char buff[1];
 };
 
+struct white_list_data{
+	char data[41];
+	struct white_list_data *next;
+};
+
+
 /* returns true if path is a directory */
 extern int is_this_directory(char *path);
 /* loads virus definitions from virus db*/
@@ -60,5 +69,7 @@ extern int get_file_data(struct file_data *fdata, struct file *filp);
 /* scans the file-content from offset and checks against each virus definition */
 extern int scan_black_list(int src_offset, struct file_data *fdata, struct virus_def *vir_def);
 /* computes sha1 of the entire file*/
-extern void compute_hash(struct file_data *);
+extern char* compute_hash(struct file_data *);
+/* checks if a file is white listed*/
+extern bool is_white_listed(struct file *, struct file_data *);
 #endif

@@ -13,118 +13,162 @@
 void
 initialize_crypto_data (struct file_data *fdata)
 {
-  fdata->c_data.tfm = crypto_alloc_hash ("sha1", 0, CRYPTO_ALG_ASYNC);
-  fdata->c_data.desc.tfm = fdata->c_data.tfm;
-  fdata->c_data.desc.flags = 0;
-  crypto_hash_init (&(fdata->c_data.desc));
+	fdata->c_data.tfm = crypto_alloc_hash ("sha1", 0, CRYPTO_ALG_ASYNC);
+	fdata->c_data.desc.tfm = fdata->c_data.tfm;
+	fdata->c_data.desc.flags = 0;
+	crypto_hash_init (&(fdata->c_data.desc));
 }
 
 /* computes sha1 of the entire file*/
-void
-compute_hash (struct file_data *fdata)
+char* compute_hash (struct file_data *fdata)
 {
-  unsigned char output[SHA1_LENGTH];
-  int i, len;
+	unsigned char output[SHA1_LENGTH];
+	int i, len;
+	char *sha1 = NULL;
+	char *sha1_byte = NULL;
 
-  if (fdata->buff)
-    {
-      len = strlen (fdata->buff);
-      //printk("Length : %d\n", len);
-      printk (KERN_INFO "sha1: %s\n", __FUNCTION__);
-
-      memset (output, 0x00, SHA1_LENGTH);
-
-      sg_init_one (&(fdata->c_data.sg), fdata->buff, len);
-
-      crypto_hash_update (&(fdata->c_data.desc), &(fdata->c_data.sg), len);
-
-      if (fdata->file_exhausted)
+	if (fdata->buff)
 	{
-	  crypto_hash_final (&(fdata->c_data.desc), output);
-	  printk ("\nPrinting hash\n");
-	  for (i = 0; i < 20; i++)
-	    {
-	      printk ("%02x", output[i]);
-	    }
+		len = strlen (fdata->buff);
+      		printk (KERN_INFO "sha1: %s\n", __FUNCTION__);
 
-	  crypto_free_hash (fdata->c_data.tfm);
+      		memset (output, 0x00, SHA1_LENGTH);
+		sg_init_one (&(fdata->c_data.sg), fdata->buff, len);
+
+		crypto_hash_update (&(fdata->c_data.desc), &(fdata->c_data.sg), len);
+		if (fdata->file_exhausted)
+		{	
+			crypto_hash_final (&(fdata->c_data.desc), output);
+			sha1 = (char*) kzalloc(sizeof(char) * 41, GFP_KERNEL); 
+			if(sha1 == NULL)
+                        {
+                                printk (KERN_ERR "could not allocate memory for reading the file structure\n");
+                                goto out;
+                        }
+			sha1_byte = (char*) kzalloc(sizeof(char) * 3, GFP_KERNEL);
+			if(sha1_byte == NULL) 
+			{
+          			printk (KERN_ERR "could not allocate memory for reading the file structure\n");
+				goto out;
+		        }
+			else
+			{		
+	  			printk ("\nPrinting hash\n");
+		  		for (i = 0; i < 20; i++)
+		    		{
+					sprintf(sha1_byte, "%02x", output[i]);
+					sha1_byte[2] = '\0';
+			      		strcat(sha1, sha1_byte);
+				}
+				sha1[40] = '\0';
+		  		crypto_free_hash (fdata->c_data.tfm);
+			}
+		}
 	}
-    }
-  else
-    {
-      printk ("\nfdata->buff is null");
-    }
+	else
+	{
+		printk ("\nfdata->buff is null");
+	}
+
+out:
+	if(sha1_byte)
+		kfree(sha1_byte);
+	return sha1;
 }
 
 
 /* returns true if this is a directory  */
-int
-is_this_directory (char *path)
+int is_this_directory (char *path)
 {
-  printk ("I got the path\n");
-  return 0;
+	printk ("I got the path\n");
+	return 0;
+}
+
+bool is_white_listed(struct file *filp, struct file_data *fdata){
+        char *sha1 = NULL;
+        struct white_list_data *iterator = head;
+	bool ret = false;
+	int err = 0;
+        /* white-list logic starts*/
+        /* computing sha1 of the file */
+        initialize_crypto_data (fdata);
+        while (fdata->file_exhausted != 1)
+        {
+                sha1 = compute_hash (fdata);
+                err = get_file_data (fdata, filp);
+                if (err < 0)
+                {
+                        printk ("SCAN: error occured while reloading the buffer\n");
+                        goto out;
+                }
+        }
+        if (fdata->file_exhausted == 1){
+                sha1 = compute_hash (fdata);
+                printk("\nSha1 : %s", sha1);
+        }
+
+        if(sha1 == NULL){
+                printk("\nCouldn't compute sha1 of file");
+                goto out;
+        }
+
+        /* white-list comparison logic to be written here*/
+
+        while(iterator != NULL){
+                if(strcmp(sha1, iterator->data) == 0){
+                        printk("\nFile is whitelisted!");
+                        ret = true;
+			break;
+                }
+                iterator = iterator->next;
+        }
+
+	out:
+	if(sha1)
+		kfree(sha1);
+	return ret;
+        /* white-list logic ends*/
 }
 
 /* scan the file */
-int
-scan (struct file *filp, struct file_data *fdata, struct virus_def *vir_def)
+int scan (struct file *filp, struct file_data *fdata, struct virus_def *vir_def)
 {
-  int start_offset = 0, end_offset = DEF_SIZE;
-  int err = 0;
+	int start_offset = 0, end_offset = DEF_SIZE;
+	int err = 0;
 
-  /* white-list logic starts*/
-  /* computing sha1 of the file */
-  initialize_crypto_data (fdata);
-  while (fdata->file_exhausted != 1)
-    {
-      compute_hash (fdata);
-      err = get_file_data (fdata, filp);
-      if (err < 0)
+	/* scan for black-list */
+	while (end_offset <= fdata->size || fdata->file_exhausted != 1)
 	{
-	  printk ("SCAN: error occured while reloading the buffer\n");
-	  goto out;
+		if (end_offset > fdata->size)
+		{
+			/* reload current buffer */
+			err = get_file_data (fdata, filp);
+			/* if error while reloading the buffer */
+			if (err < 0)
+			{
+				printk ("SCAN: error occured while reloading the buffer\n");
+				goto out;
+			}
+			end_offset = DEF_SIZE;
+			start_offset = 0;
+		}
+      		/* we have data and everything, lets scan */
+      		err = scan_black_list (start_offset, fdata, vir_def);
+      		if (err < 0)
+		{
+	  		printk (KERN_ERR "SCAN: error occured while scanning through black-list\n");
+	  		goto out;
+		}
+		if (err > 0)
+		{
+			printk (KERN_INFO "SCAN: found a malicious file\n");
+			goto out;
+		}
+      		start_offset++;
+		end_offset++;
 	}
-    }
-  if (fdata->file_exhausted == 1)
-    compute_hash (fdata);
-   
-  /* white-list comparison logic to be written here*/
-  /* white-list logic ends*/
-
-  /* scan for black-list */
-  while (end_offset <= fdata->size || fdata->file_exhausted != 1)
-    {
-      if (end_offset > fdata->size)
-	{
-	  /* reload current buffer */
-	  err = get_file_data (fdata, filp);
-	  /* if error while reloading the buffer */
-	  if (err < 0)
-	    {
-	      printk ("SCAN: error occured while reloading the buffer\n");
-	      goto out;
-	    }
-	  end_offset = DEF_SIZE;
-	  start_offset = 0;
-	}
-      /* we have data and everything, lets scan */
-      err = scan_black_list (start_offset, fdata, vir_def);
-      if (err < 0)
-	{
-	  printk (KERN_ERR
-		  "SCAN: error occured while scanning through black-list\n");
-	  goto out;
-	}
-      if (err > 0)
-	{
-	  printk (KERN_INFO "SCAN: found a malicious file\n");
-	  goto out;
-	}
-      start_offset++;
-      end_offset++;
-    }
 out:
-  return err;
+	return err;
 }
 
 /* returns the path name from userland path*/
@@ -208,8 +252,7 @@ scan_black_list (int src_offset, struct file_data *fdata,
 }
 
 /* created the file_data structure and reads BUF_SIZE bytes into the buffer  */
-struct file_data *
-create_file_data_struct (struct file *filp)
+struct file_data *create_file_data_struct (struct file *filp)
 {
   struct file_data *fdata;
   int fsize = 0, read_size = 0, err = 0;

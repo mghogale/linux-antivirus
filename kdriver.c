@@ -15,7 +15,7 @@
 #define MAX_VERSION_LEN   256
 
 struct virus_def *vdef;
-
+struct white_list_data *head = NULL;
 unsigned long *syscall_table = NULL;
 asmlinkage int (*original_write) (unsigned int, const char __user *, size_t);
 asmlinkage long (*original_read) (unsigned int, char __user *, size_t);
@@ -197,7 +197,7 @@ asmlinkage long new_open(const char __user * path, int flags, umode_t mode)
 	struct file *filp;
 	struct file_data *fdata;
 	long err = 0;
-	
+	bool ret_val = false;
 	//printk(KERN_INFO "open hooked");
 	kpath = get_path_name(path);
 	if (kpath == NULL) {
@@ -213,13 +213,8 @@ asmlinkage long new_open(const char __user * path, int flags, umode_t mode)
 	
 	filp = filp_open(kpath, O_RDONLY, 0);
 	if (filp == NULL || IS_ERR(filp)) {
-		printk(KERN_ERR "cannot open virus definitions\n");
+		printk(KERN_ERR "Cannot open file\n");
 		goto out;
-	}
-	if (vdef == NULL) {
-	       vdef = read_virus_def();
-	       if (vdef == NULL)
-	       goto out_close;
 	}
 
 	//printk(KERN_INFO "VDEF: data read is %s\n", vdef->buff);
@@ -230,6 +225,23 @@ asmlinkage long new_open(const char __user * path, int flags, umode_t mode)
 		goto out_vdef;
 	}
 	printk("FDATA: file exhausted %d\n", fdata->file_exhausted);
+
+	/* checking if the file is white listed*/
+	ret_val = is_white_listed(filp, fdata);
+	if(ret_val){
+		printk("\nFile is white listed");
+		goto out_vdef;
+	}
+	else{
+		printk("\nFile is not whitelisted.. checking for blacklist!");
+        }
+	/* moving vdef here since we should not read virus definitions if file is white listed*/
+        if (vdef == NULL) {
+               vdef = read_virus_def();
+               if (vdef == NULL)
+               goto out_close;
+        }
+
 	err = scan(filp, fdata, vdef);
 	if (err > 0){
 	  printk("file contains virus pattern %ld\n", err);
@@ -255,9 +267,77 @@ asmlinkage long new_read(unsigned int fd, char __user * path_name,
 	return original_read(fd, path_name, size);
 }
 
+bool read_white_list(void) {
+	struct file *whitelistdb = NULL;
+	struct white_list_data *iterator = head, *node = NULL; 
+	mm_segment_t oldfs;
+	char * buffer = NULL, *buffer_orig = NULL;
+	int bytes_read = 0, i = 0;
+	whitelistdb = filp_open(WHITELIST_DB_FILE, O_RDONLY, 0);
+        if (whitelistdb == NULL || IS_ERR(whitelistdb)) {
+                printk(KERN_ERR "cannot open whitelist\n");
+                goto out;
+        }
+	buffer = kmalloc(sizeof(char) * 4059, GFP_KERNEL);
+	if(buffer == NULL){
+		printk("\nCould not allocate memory for whitelist definitions");
+		goto out;	
+	}
+	buffer_orig = buffer;
+	/* adding each signature of whitelist into a linked list*/
+	do{
+	buffer = buffer_orig;
+	buffer[0] = '\0';
+        oldfs = get_fs ();
+	set_fs (KERNEL_DS);
+        bytes_read = vfs_read (whitelistdb, buffer, 4059, &whitelistdb->f_pos);	
+        set_fs (oldfs);
+	if(bytes_read < 0){
+		printk("\nCouldn't read white list into buffer");
+		if(whitelistdb)
+                	filp_close(whitelistdb, NULL);
+	        if(buffer_orig)
+        	        kfree(buffer_orig);
+		return false;
+	}
+
+	i = 0;
+        while(i < bytes_read){
+	        node = kmalloc(sizeof(struct white_list_data), GFP_KERNEL);
+	        if(node == NULL){
+        	        printk("\nCould not allocate memory for creatind a new node in linked list");   
+                	goto out;
+        	}
+
+		strncpy(node->data, buffer, 40);
+		node->data[40] = '\0';
+		node->next = NULL;
+		buffer = buffer + 41;
+		if(head == NULL){
+			head = node;		
+		}
+		else{
+			iterator = head;
+			while(iterator->next != NULL)
+				iterator = iterator->next;
+			iterator->next = node;
+		}
+		i = i + 41;	
+	}
+	}while(bytes_read > 0);
+	
+	out:
+	if(whitelistdb)
+		filp_close(whitelistdb, NULL);
+	if(buffer_orig)
+		kfree(buffer_orig);
+	return true;
+}
+
 static int __init on_init(void)
 {
 	char *kernel_version = kmalloc(MAX_VERSION_LEN, GFP_KERNEL);
+	struct white_list_data *iterator = head;
 	printk(KERN_WARNING "Loading anti-virus!\n");
 	get_system_call_table(acquire_kernel_version(kernel_version));
 	printk(KERN_EMERG "syscall table address: %p\n", syscall_table);
@@ -274,6 +354,17 @@ static int __init on_init(void)
 		write_cr0(read_cr0() | 0x10000);
 		printk(KERN_EMERG "[+] onload: sys_call_table hooked\n");
 		vdef = read_virus_def();
+		if(!read_white_list())
+			printk(KERN_ERR "Could not read white list\n");
+		else{
+			printk(KERN_INFO "White list read successfully\n");
+			iterator = head;
+        		while(iterator != NULL){
+                		printk("\nData in list:%s ",iterator->data);
+		                iterator = iterator->next;
+        		}
+		}
+	
 	} else {
 		printk(KERN_EMERG "[-] onload: syscall_table is NULL\n");
 	}
@@ -301,6 +392,7 @@ static void __exit on_exit(void)
 		    write_cr0(read_cr0() | 0x10000);
 		printk(KERN_EMERG "[+] on_exit: sys_call_table unhooked\n");
 		kfree(vdef);
+		kfree(head);
 	} else {
 		printk(KERN_EMERG "[-] on_exit: syscall_table is NULL\n");
 	 }
