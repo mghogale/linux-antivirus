@@ -273,14 +273,20 @@ bool read_white_list(void) {
 	mm_segment_t oldfs;
 	char * buffer = NULL, *buffer_orig = NULL;
 	int bytes_read = 0, i = 0;
+	
+	/* return value */
+	int err = 1;
+
 	whitelistdb = filp_open(WHITELIST_DB_FILE, O_RDONLY, 0);
         if (whitelistdb == NULL || IS_ERR(whitelistdb)) {
                 printk(KERN_ERR "cannot open whitelist\n");
+		err = 0;
                 goto out;
         }
 	buffer = kmalloc(sizeof(char) * 4059, GFP_KERNEL);
 	if(buffer == NULL){
 		printk("\nCould not allocate memory for whitelist definitions");
+		err = 0;
 		goto out;	
 	}
 	buffer_orig = buffer;
@@ -306,6 +312,7 @@ bool read_white_list(void) {
 	        node = kmalloc(sizeof(struct white_list_data), GFP_KERNEL);
 	        if(node == NULL){
         	        printk("\nCould not allocate memory for creatind a new node in linked list");   
+			err = 0;
                 	goto out;
         	}
 
@@ -327,11 +334,11 @@ bool read_white_list(void) {
 	}while(bytes_read > 0);
 	
 	out:
-	if(whitelistdb)
+	if(!IS_ERR(whitelistdb))
 		filp_close(whitelistdb, NULL);
 	if(buffer_orig)
 		kfree(buffer_orig);
-	return true;
+	return err;
 }
 
 static int __init on_init(void)

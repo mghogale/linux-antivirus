@@ -245,16 +245,17 @@ scan_black_list (int src_offset, struct file_data *fdata,
 	//printk("virus are %s\n file is %s\n", &vir_def->buff[pref_len + 1], &fdata->buff[src_offset]);
 
 	/* perform the actual comparison */
-      cmp_res = strncmp (&fdata->buff[src_offset], &vir_def->buff[pref_len + 1], cmp_len);
+	cmp_res = strncmp (&fdata->buff[src_offset], &vir_def->buff[pref_len + 1], cmp_len);
 
-      if (cmp_res == 0)
+	if (cmp_res == 0)
 	{
-	  printk (KERN_INFO "virus found\n");
-	  /* should probably return the number associated with the malicious signature */
-	  err = 100;
-	goto out;
+		printk (KERN_INFO "virus found\n");
+		/* should probably return the number associated with the malicious signature */
+		err = 100;
+		goto out;
 	}
-
+	
+	//lets point to start of next record
 	record_end = sig_size + 1;
 	vir_def_offset = sig_size + 1;
 	vir_def->offset = sig_size + 1;
