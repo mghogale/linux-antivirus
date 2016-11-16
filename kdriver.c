@@ -229,7 +229,7 @@ asmlinkage long new_open(const char __user * path, int flags, umode_t mode)
 	/* checking if the file is white listed*/
 	ret_val = is_white_listed(filp, fdata);
 	if(ret_val){
-		printk("\nFile is white listed");
+		printk("\nFile is white listed!");
 		goto out_vdef;
 	}
 	else{
@@ -275,18 +275,18 @@ bool read_white_list(void) {
 	int bytes_read = 0, i = 0;
 	
 	/* return value */
-	int err = 1;
+	bool err = true;
 
 	whitelistdb = filp_open(WHITELIST_DB_FILE, O_RDONLY, 0);
         if (whitelistdb == NULL || IS_ERR(whitelistdb)) {
                 printk(KERN_ERR "cannot open whitelist\n");
-		err = 0;
+		err = false;
                 goto out;
         }
 	buffer = kmalloc(sizeof(char) * 4059, GFP_KERNEL);
 	if(buffer == NULL){
 		printk("\nCould not allocate memory for whitelist definitions");
-		err = 0;
+		err = false;
 		goto out;	
 	}
 	buffer_orig = buffer;
@@ -300,11 +300,8 @@ bool read_white_list(void) {
         set_fs (oldfs);
 	if(bytes_read < 0){
 		printk("\nCouldn't read white list into buffer");
-		if(whitelistdb)
-                	filp_close(whitelistdb, NULL);
-	        if(buffer_orig)
-        	        kfree(buffer_orig);
-		return false;
+		err = false;
+		goto out;
 	}
 
 	i = 0;
@@ -312,7 +309,7 @@ bool read_white_list(void) {
 	        node = kmalloc(sizeof(struct white_list_data), GFP_KERNEL);
 	        if(node == NULL){
         	        printk("\nCould not allocate memory for creatind a new node in linked list");   
-			err = 0;
+			err = false;
                 	goto out;
         	}
 

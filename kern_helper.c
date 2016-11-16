@@ -116,7 +116,6 @@ bool is_white_listed(struct file *filp, struct file_data *fdata){
 
         while(iterator != NULL){
                 if(strcmp(sha1, iterator->data) == 0){
-                        printk("\nFile is whitelisted!");
                         ret = true;
 			break;
                 }
