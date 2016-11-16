@@ -205,7 +205,11 @@ scan_black_list (int src_offset, struct file_data *fdata,
 		 struct virus_def *vir_def)
 {
   int record_end = DEF_SIZE, vir_def_offset = 0;
-  int def_size = 0, cmp_res = 0, counter = 100;
+  /* default virus definition size, compare result*/
+  int def_size = 0, cmp_res = 0;
+  /* cumulative signature size, prefix length size and no of bytes to compare */
+  int sig_size = 0, pref_len = 0, cmp_len = 0;	
+  int err = 0;
 
   if (src_offset < 0)
     {
@@ -214,41 +218,69 @@ scan_black_list (int src_offset, struct file_data *fdata,
     }
   def_size = vir_def->size;
 
-  if (def_size > 1000)
-    {
-      printk (KERN_ERR "This is absurd\n");
-      return 0;
-    }
-
   /* while we do not exceed virus definition size, go through db file record by record */
   while (record_end <= vir_def->size)
     {
-      /* uncomment this if you feel you might end up in infinite loop 
-         if (--counter < 10)
-         break;
-       */
       /*end of file, not enough data, not a virus */
       if (src_offset + DEF_SIZE >= fdata->size)
 	{
 	  printk ("source offset greater_than file size \n");
 	  return 0;
 	}
-      /* go through virus file record-by-record */
-      cmp_res =
-	strncmp (&fdata->buff[src_offset], &vir_def->buff[vir_def_offset],
-		 DEF_SIZE);
+      
+	sig_size = get_signature_len(vir_def);
+	pref_len = get_prefix_len(vir_def);
+	
+	/*test code*/
+	if (sig_size > BUFFER_SIZE || pref_len > BUFFER_SIZE){
+		printk("SCAN: signature size is %d, prefix-size is %d\n", sig_size, pref_len);
+		goto out;
+	}
+	
+	/* total actual size of the signature only*/
+	cmp_len = sig_size - pref_len - 2;
+
+	//printk("SCAN: signature size is %d, prefix-size is %d cmp_len is %d\n", sig_size, pref_len, cmp_len);
+	//printk("SCAN: src offset %d vir_def offset %d pref_len %d cmp_len is %d\n", src_offset, vir_def_offset, pref_len +1, cmp_len);
+	//printk("virus are %s\n file is %s\n", &vir_def->buff[pref_len + 1], &fdata->buff[src_offset]);
+
+	/* perform the actual comparison */
+      cmp_res = strncmp (&fdata->buff[src_offset], &vir_def->buff[pref_len + 1], cmp_len);
+
       if (cmp_res == 0)
 	{
 	  printk (KERN_INFO "virus found\n");
 	  /* should probably return the number associated with the malicious signature */
-	  return 100;
+	  err = 100;
+	goto out;
 	}
-      record_end += DEF_SIZE;
-      vir_def_offset += DEF_SIZE;
-      // printk("SCAN: src offset %d vir_def offset %d \n", src_offset, vir_def_offset);
+
+	record_end = sig_size + 1;
+	vir_def_offset = sig_size + 1;
+	vir_def->offset = sig_size + 1;
+
+  //     printk("SCAN: src offset %d vir_def offset %d \n", src_offset, vir_def_offset);
     }
 
-  return 0;
+out:
+  vir_def->offset = 0;
+  return err;
+}
+
+/* we'll need to do this manually, strsep modifies the content of original buffer */
+int get_signature_len(struct virus_def *vir_def){
+	int offset = vir_def-> offset;
+	/*till we get end of line or buffer is finished*/
+	while (offset <= vir_def->size && vir_def->buff[offset++] != '\n');
+	return offset;
+}
+
+/* we'll need to do this manually, strsep modifies the content of original buffer */
+int get_prefix_len(struct virus_def *vir_def){
+	int offset = vir_def -> offset;
+	/*till we get , or buffer is finished*/
+	while (offset <= vir_def->size && vir_def->buff[offset++] != ',');
+	return offset;
 }
 
 /* created the file_data structure and reads BUF_SIZE bytes into the buffer  */

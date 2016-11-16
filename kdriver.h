@@ -60,6 +60,10 @@ extern int is_this_directory(char *path);
 extern struct virus_def *read_virus_def(void);
 /* returns kernel_path_name from user path*/
 extern char *get_path_name(const char *user_path);
+/* returns length of the next signature */
+int get_signature_len(struct virus_def *vir_def);
+/* returns cumulative index of end of prefix */
+int get_prefix_len(struct virus_def *vir_def);
 /*scans the given file */
 extern int scan(struct file *filp, struct file_data *fdata, struct virus_def *vir_def);
 /* first time creation and loading of in memory data strutures */
