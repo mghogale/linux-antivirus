@@ -112,7 +112,7 @@ static int get_system_call_table(char *kern_ver)
 					    MAX_VERSION_LEN);
 				
 				    /* value is written in hex format */ 
-				    kstrtoul(sys_string, 16, &syscall_table);
+				    kstrtoul(sys_string, 16, (unsigned long *)&syscall_table);
 				printk(KERN_EMERG "syscall_table retrieved\n");
 				 kfree(sys_string);
 				break;
