@@ -4,8 +4,6 @@
 wget=/usr/bin/wget
 working_dir="/root/"
 wget_opts='-O '
-echo $virus_db
-echo $whitelist_db
 
 cd $working_dir
 $wget $wget_opts $virus_file_name $virus_db
