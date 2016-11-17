@@ -1,4 +1,7 @@
 HOW TO RUN THE ANTIVIRUS ?
-1. do make in the directory
-2. run 'sh install.sh'
-3. you are now secured !
+1. Do make in the directory
+2. Run 'sh install.sh'
+3. You are now secured !
+4. Copy the antivirus-update script to usr/local/bin directory
+5. Copy the antivirus.properties file to the /tmp directory
+6. The virus.db and whitelist.db file will be copied to the /root directory
