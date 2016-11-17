@@ -6,7 +6,6 @@
 #include <linux/slab.h>		/* kmalloc */
 #include <asm/paravirt.h>	/* write_cr0 */
 #include <asm/uaccess.h>	/* get_fs, set_fs */
-
 #include "kdriver.h"
 
 /* initializes data needed for crytpo API*/
@@ -197,6 +196,57 @@ get_path_name (const char *user_path)
 out:
   return kpath;
 }
+
+bool
+rename_malicious_file (char *old_path)
+{
+  int len = 0;
+  char *new_path = NULL;
+  bool ret = true;
+  struct inode *old_path_inode = NULL, *new_path_inode = NULL;
+  struct file *old_file = NULL, *new_file = NULL;
+  len = strlen(old_path) + strlen(VIRUS_FILE_EXTENSION) + 1;
+
+  new_path = kzalloc (len, GFP_KERNEL);
+  if (new_path == NULL)
+    {
+      printk (KERN_ERR "\nUnable to allocate memory");
+      ret = false;
+      goto out;
+    }
+
+  strcat(new_path, old_path);
+  strcat(new_path, VIRUS_FILE_EXTENSION);
+  new_path[len] = '\0';
+
+  old_file = filp_open(old_path, O_RDONLY, 0);
+  if(!old_file || IS_ERR(old_file)){
+	printk("\nCan't open file to be scanned");
+	ret = false;
+        goto out;
+  }	
+  new_file = filp_open(new_path,O_WRONLY|O_CREAT,0644);
+  if(!new_file || IS_ERR(new_file)){
+        printk("\nCan't open file to be scanned");
+        ret = false;
+        goto out;
+  } 
+  
+  old_path_inode = d_inode(file_dentry(old_file)->d_parent);
+  new_path_inode = d_inode(file_dentry(new_file)->d_parent);
+  vfs_rename(old_path_inode,file_dentry(old_file),new_path_inode,file_dentry(new_file),NULL,0);
+  
+out:
+  if(new_path)
+	kfree(new_path);
+  if(old_file)
+	filp_close(old_file, NULL);
+  if(new_file)
+	filp_close(new_file, NULL);
+  return ret;
+}
+
+
 
 /* scans through the black-list searching for match from src_offser of file_data buffer */
 int

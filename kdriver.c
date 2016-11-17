@@ -201,6 +201,7 @@ bool is_file_malicious(const char *path){
 	long err = 0;
 	bool ret_val = false;
 	bool is_malicious = false;
+	bool is_renamed = false;
 	kpath = get_path_name(path);
 	if (kpath == NULL) {
 		printk(KERN_ERR "KDRIVER: could not get path from user\n");
@@ -238,7 +239,7 @@ bool is_file_malicious(const char *path){
 		goto out_vdef;
 	}
 	else{
-		printk("\nFile is not whitelisted.. checking for blacklist!");
+		printk("\nFile is not white listed.. checking for blacklist!");
         }
 	/* moving vdef here since we should not read virus definitions if file is white listed*/
         if (vdef == NULL) {
@@ -250,7 +251,15 @@ bool is_file_malicious(const char *path){
 
 	err = scan(filp, fdata, vdef);
 	if (err > 0){
-	  printk("file contains virus pattern %ld\n", err);
+	  printk("\nFile contains virus pattern %ld\n", err);
+	  printk("\nRenaming file to .virus");
+	  is_renamed = rename_malicious_file (kpath);
+	  if(is_renamed)
+		printk("\nRenamed file to .virus");
+	  else{
+		printk("\nCouldn't rename file to .virus");
+		is_malicious = true;
+	  }
 	}
 	
 	kfree(fdata);
@@ -277,7 +286,8 @@ asmlinkage long new_open(const char __user * path, int flags, umode_t mode)
 
 asmlinkage long new_execve(const char __user *filename, const char __user *const __user *argv, const char __user *const __user *envp)
 {
-        bool is_malicious = is_file_malicious(filename);
+        bool is_malicious = false;
+	is_malicious = is_file_malicious(filename);
 	printk("\nIntercepted exexc");
         if(!is_malicious)
 		return original_execve(filename, argv, envp);

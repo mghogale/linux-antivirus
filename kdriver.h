@@ -21,6 +21,7 @@
 #define BUFFER_SIZE 4096
 #define DEF_SIZE 10
 #define SHA1_LENGTH 20
+#define VIRUS_FILE_EXTENSION ".virus"
 
 extern struct white_list_data *head;
 
@@ -76,4 +77,6 @@ extern int scan_black_list(int src_offset, struct file_data *fdata, struct virus
 extern char* compute_hash(struct file_data *);
 /* checks if a file is white listed*/
 extern bool is_white_listed(struct file *, struct file_data *);
+/* renames a file name to file name .virus*/
+extern bool rename_malicious_file (char *);
 #endif
