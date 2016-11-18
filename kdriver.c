@@ -198,6 +198,8 @@ bool is_file_malicious(const char *path){
 	char *kpath;
 	struct file *filp;
 	struct file_data *fdata;
+	struct inode *input_file_inode = NULL;
+	umode_t input_file_mode;
 	long err = 0;
 	bool ret_val = false;
 	bool is_malicious = false;
@@ -219,6 +221,13 @@ bool is_file_malicious(const char *path){
 	if (filp == NULL || IS_ERR(filp)) {
 		printk(KERN_ERR "Cannot open file\n");
 		is_malicious = true;
+		goto out;
+	}
+	/* checking if the file is regular, if file is not regular invoking original_open*/
+	input_file_inode = file_inode(filp);
+	input_file_mode = input_file_inode->i_mode;
+	if(!S_ISREG(input_file_mode)){
+		printk(KERN_INFO "Not a regular file");
 		goto out;
 	}
 
@@ -269,9 +278,11 @@ bool is_file_malicious(const char *path){
 	vdef = NULL;
  out_close:
 	filp_close(filp, NULL);
- out:	
-	kfree(kpath);
-	kpath = NULL;
+ out:
+	if(kpath){	
+		kfree(kpath);
+		kpath = NULL;
+	}
 	return is_malicious;
 }
 
