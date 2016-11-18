@@ -6,5 +6,11 @@ working_dir="/root/"
 wget_opts='-O '
 
 cd $working_dir
+
+echo ""
+echo "Updating antivirus...."
+echo ""
 $wget $wget_opts $virus_file_name $virus_db
 $wget $wget_opts $whitelist_file_name $whitelist_db
+echo ""
+echo "Antivirus updated successfully!"
