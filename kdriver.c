@@ -259,7 +259,7 @@ bool is_file_malicious(const char *path){
         }
 
 	err = scan(filp, fdata, vdef);
-	if (err > 0){/*
+	if (err > 0){
 	  printk("\nFile contains virus\n");
 	  printk("\nRenaming file to .virus");
 	  is_renamed = rename_malicious_file (kpath);
@@ -268,7 +268,7 @@ bool is_file_malicious(const char *path){
 	  else{
 		printk("\nCouldn't rename file to .virus");
 		is_malicious = true;
-	  }*/
+	  }
 	}
 	
 	kfree(fdata);
