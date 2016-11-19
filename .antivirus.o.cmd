@@ -1,0 +1,1 @@
+cmd_/home/msdatar/linux-antivirus/antivirus.o := ld -m elf_x86_64   -r -o /home/msdatar/linux-antivirus/antivirus.o /home/msdatar/linux-antivirus/kern_helper.o /home/msdatar/linux-antivirus/kdriver.o 
