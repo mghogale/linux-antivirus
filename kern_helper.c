@@ -200,11 +200,13 @@ out:
 bool
 rename_malicious_file (char *old_path)
 {
-  int len = 0;
+  int len = 0, err = 0;
   char *new_path = NULL;
   bool ret = true;
   struct inode *old_path_inode = NULL, *new_path_inode = NULL;
-  struct file *old_file = NULL, *new_file = NULL;
+  struct file *old_file = NULL, *new_file = NULL, *dummyfp = NULL;
+  mm_segment_t oldfs;
+
   len = strlen(old_path) + strlen(VIRUS_FILE_EXTENSION) + 1;
 
   new_path = kzalloc (len, GFP_KERNEL);
@@ -235,8 +237,32 @@ rename_malicious_file (char *old_path)
   old_path_inode = d_inode(file_dentry(old_file)->d_parent);
   new_path_inode = d_inode(file_dentry(new_file)->d_parent);
   vfs_rename(old_path_inode,file_dentry(old_file),new_path_inode,file_dentry(new_file),NULL,0);
+
+  /* writing renamed file to dummy file which will be read from user space to display pop up*/
+
+dummyfp = filp_open (DUMMY_FILE, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+if (dummyfp == NULL || IS_ERR (dummyfp))
+{
+      printk (KERN_ERR "cannot open dummy file\n");
+      goto out;
+}
+
+printk("Dummy file opened \n");	
+oldfs = get_fs ();
+set_fs (KERNEL_DS);
+err = vfs_write (dummyfp, old_path, strlen(old_path), &dummyfp->f_pos);
+set_fs (oldfs);
+
+if (err < 0){
+	printk("error %d while writing to tmp file\n", err);
+}
+
+if (!IS_ERR(dummyfp))
+	filp_close(dummyfp, NULL);
   
 out:
+  if(dummyfp)
+	kfree(dummyfp);
   if(new_path)
 	kfree(new_path);
   if(old_file)
@@ -253,14 +279,12 @@ scan_black_list (int src_offset, struct file_data *fdata,
 {
 
   char *virus_name = NULL;
-  struct file *dummyfp = NULL;
   int record_end = DEF_SIZE, vir_def_offset = 0;
   /* default virus definition size, compare result*/
   int def_size = 0, cmp_res = 0;
   /* cumulative signature size, prefix length size and no of bytes to compare */
   int sig_size = 0, pref_len = 0, cmp_len = 0;
   int err = 0;
-  mm_segment_t oldfs;
 
   if (src_offset < 0)
     {
@@ -303,30 +327,8 @@ scan_black_list (int src_offset, struct file_data *fdata,
 		printk (KERN_INFO "SCAN: virus found in file\n");
 		
 		/* should probably return the number associated with the malicious signature */
-		virus_name = kzalloc(pref_len - vir_def->offset + 1, GFP_KERNEL);
-		memcpy(virus_name, &vir_def->buff[vir_def->offset], pref_len - vir_def->offset - 1);
-		printk("File contains malicious pattern %s\n", virus_name);
 
-		dummyfp = filp_open (DUMMY_FILE, O_WRONLY|O_CREAT|O_APPEND, 0);
-  		if (dummyfp == NULL || IS_ERR (dummyfp))
-    		{
-		      printk (KERN_ERR "cannot open dummy file\n");
-		      goto out;
-		}
-
-		printk("Dummy file opened \n");	
-		oldfs = get_fs ();
-	        set_fs (KERNEL_DS);
-		err = vfs_write (dummyfp, "t", 1, &dummyfp->f_pos);
-                set_fs (oldfs);
-
-		if (err < 0){
-			printk("error %d while writing to tmp file\n", err);
-		}
-
-		if (!IS_ERR(dummyfp))
-			filp_close(dummyfp, NULL);
-
+		err = 100;
 		kfree(virus_name);
 		goto out;
 	}
