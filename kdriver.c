@@ -211,11 +211,12 @@ bool is_file_malicious(const char *path){
 		is_malicious = true;
 		goto out;
 	}
-	
+    	
+  	printk("\nKpath = %s",kpath);	
 	/* lower two checks are for test purpose only */ 
 	
-	if (strncmp(kpath, "/home", 5) != 0)
-		goto out;
+	//if (strncmp(kpath, "/home", 5) != 0)
+	//	goto out;
 	
 	filp = filp_open(kpath, O_RDONLY, 0);
 	if (filp == NULL || IS_ERR(filp)) {
@@ -288,7 +289,12 @@ bool is_file_malicious(const char *path){
 
 asmlinkage long new_open(const char __user * path, int flags, umode_t mode)
 {
-	bool is_malicious = is_file_malicious(path);
+	bool is_malicious = false;
+	
+	if(flags  <= 32768){
+		is_malicious = is_file_malicious(path);
+		printk("\nIn kernel flags = %d",flags);
+	}
 	if(!is_malicious)
 		return original_open(path, flags, mode);
 	else
