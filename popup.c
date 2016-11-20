@@ -62,9 +62,9 @@ while(1){
 		rewind (file_pointer);
 		fread(buffer,length,1,file_pointer);
 		cmd[0] = '\0';
-		strcat(cmd,"zenity --error --text ' ");
+                strcpy(cmd,"notify-send \"");
 		strcat(cmd,buffer);
-		strcat(cmd," has virus!' &");
+		strcat(cmd," has virus!\"");
 		prev_size = curr_size;
 		system(cmd);
 		free(buffer);
