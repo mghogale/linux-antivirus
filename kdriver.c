@@ -1,11 +1,11 @@
-#include <linux/module.h>  /* Needed by all kernel modules */
-#include <linux/kernel.h>  /* Needed for loglevels (KERN_WARNING, KERN_EMERG, KERN_INFO, etc.) */
-#include <linux/init.h>    /* Needed for __init and __exit macros. */
-#include <linux/unistd.h>  /* sys_call_table __NR_* system call function indices */
-#include <linux/fs.h>      /* filp_open */
-#include <linux/slab.h>    /* kmalloc */
-#include <asm/paravirt.h> /* write_cr0 */
-#include <asm/uaccess.h>  /* get_fs, set_fs */
+#include <linux/module.h>
+#include <linux/kernel.h>
+#include <linux/init.h>
+#include <linux/unistd.h>
+#include <linux/fs.h>
+#include <linux/slab.h>
+#include <asm/paravirt.h>
+#include <asm/uaccess.h>
 #include <linux/errno.h>
 
 #include "kdriver.h"
@@ -17,8 +17,7 @@
 struct virus_def *vdef;
 struct white_list_data *head = NULL;
 unsigned long *syscall_table = NULL;
-asmlinkage int (*original_write) (unsigned int, const char __user *, size_t);
-asmlinkage long (*original_read) (unsigned int, char __user *, size_t);
+
 asmlinkage long (*original_open) (const char __user *, int, umode_t);
 asmlinkage long (*original_execve) (const char __user *filename, const char __user *const __user *argv, const char __user *const __user *envp);
 
@@ -187,13 +186,6 @@ char *acquire_kernel_version(char *buf)
 	return kernel_version;
 }
 
-asmlinkage int new_write(unsigned int x, const char __user * y, size_t size)
-{
-	printk(KERN_EMERG "[+] write() hooked.\n");
-	return original_write(x, y, size);
-}
-
-
 bool is_file_malicious(const char *path){
 	char *kpath;
 	struct file *filp;
@@ -212,12 +204,8 @@ bool is_file_malicious(const char *path){
 		goto out;
 	}
     	
-  	printk("\nKpath = %s",kpath);	
-	/* lower two checks are for test purpose only */ 
-	
-	//if (strncmp(kpath, "/home", 5) != 0)
-	//	goto out;
-	
+  	printk("\nKpath = %s",kpath);
+
 	filp = filp_open(kpath, O_RDONLY, 0);
 	if (filp == NULL || IS_ERR(filp)) {
 		printk(KERN_ERR "Cannot open file\n");
@@ -232,7 +220,6 @@ bool is_file_malicious(const char *path){
 		goto out;
 	}
 
-	//printk(KERN_INFO "VDEF: data read is %s\n", vdef->buff);
 	fdata = create_file_data_struct(filp);
 	if (fdata == NULL) {
 		printk(KERN_ERR
@@ -251,6 +238,7 @@ bool is_file_malicious(const char *path){
 	else{
 		printk("\nFile is not white listed.. checking for blacklist!");
         }
+
 	/* moving vdef here since we should not read virus definitions if file is white listed*/
         if (vdef == NULL) {
                vdef = read_virus_def();
@@ -262,7 +250,7 @@ bool is_file_malicious(const char *path){
 	err = scan(filp, fdata, vdef);
 	if (err > 0){
 	  printk("\nFile contains virus\n");
-	  printk("\nRenaming file to .virus");
+	  printk("\nRenaming file to .virus")
 	  is_renamed = rename_malicious_file (kpath);
 	  if(is_renamed)
 		printk("\nRenamed file to .virus");
@@ -312,15 +300,6 @@ asmlinkage long new_execve(const char __user *filename, const char __user *const
 		return -EACCES;
 }
 
-
-
-asmlinkage long new_read(unsigned int fd, char __user * path_name,
-			    size_t size)
-{
-	printk(KERN_EMERG "[+] read() hooked\n");
-	return original_read(fd, path_name, size);
-}
-
 bool read_white_list(void) {
 	struct file *whitelistdb = NULL;
 	struct white_list_data *iterator = head, *node = NULL; 
@@ -344,6 +323,7 @@ bool read_white_list(void) {
 		goto out;	
 	}
 	buffer_orig = buffer;
+
 	/* adding each signature of whitelist into a linked list*/
 	do{
 	buffer = buffer_orig;
@@ -407,8 +387,6 @@ static int __init on_init(void)
 		original_read = (void *)syscall_table[__NR_read];
 		original_open = (void *)syscall_table[__NR_open];
 		original_execve = (void *)syscall_table[__NR_execve];
-	         //syscall_table[__NR_write] = (unsigned long)&new_write;
-                 //syscall_table[__NR_read] = (unsigned long)&new_read;
 		syscall_table[__NR_open] = (unsigned long) &new_open;
 		syscall_table[__NR_execve] = (unsigned long) &new_execve;
 		write_cr0(read_cr0() | 0x10000);
@@ -444,8 +422,6 @@ static void __exit on_exit(void)
 		    write_cr0(read_cr0() & (~0x10000));
 	       
 		    /* un-hook the system calls that were hooked earlier */ 
-		    //syscall_table[__NR_write] = (unsigned long)original_write;
-		    //syscall_table[__NR_read] = (unsigned long)original_read;
 		    syscall_table[__NR_open] = (unsigned long)original_open;
 		    syscall_table[__NR_execve] = (unsigned long)original_execve;
 		    /* mark the area again as read only */

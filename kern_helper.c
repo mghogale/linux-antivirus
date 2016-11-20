@@ -52,7 +52,7 @@ char* compute_hash (struct file_data *fdata)
 		        }
 			else
 			{		
-	  			printk ("\nPrinting hash\n");
+	  			printk ("Printing hash\n");
 		  		for (i = 0; i < 20; i++)
 		    		{
 					sprintf(sha1_byte, "%02x", output[i]);
@@ -66,21 +66,13 @@ char* compute_hash (struct file_data *fdata)
 	}
 	else
 	{
-		printk ("\nfdata->buff is null");
+		printk ("fdata->buff is null\n");
 	}
 
 out:
 	if(sha1_byte)
 		kfree(sha1_byte);
 	return sha1;
-}
-
-
-/* returns true if this is a directory  */
-int is_this_directory (char *path)
-{
-	printk ("I got the path\n");
-	return 0;
 }
 
 bool is_white_listed(struct file *filp, struct file_data *fdata){
@@ -103,11 +95,11 @@ bool is_white_listed(struct file *filp, struct file_data *fdata){
         }
         if (fdata->file_exhausted == 1){
                 sha1 = compute_hash (fdata);
-                printk("\nSha1 : %s", sha1);
+                printk("Sha1 : %s\n", sha1);
         }
 
         if(sha1 == NULL){
-                printk("\nCouldn't compute sha1 of file");
+                printk("Couldn't compute sha1 of file\n");
                 goto out;
         }
 
@@ -212,7 +204,7 @@ rename_malicious_file (char *old_path)
   new_path = kzalloc (len, GFP_KERNEL);
   if (new_path == NULL)
     {
-      printk (KERN_ERR "\nUnable to allocate memory");
+      printk (KERN_ERR "SCAN_MALICIOUS:Unable to allocate memory\n");
       ret = false;
       goto out;
     }
@@ -223,13 +215,13 @@ rename_malicious_file (char *old_path)
 
   old_file = filp_open(old_path, O_RDONLY, 0);
   if(!old_file || IS_ERR(old_file)){
-	printk("\nCan't open file to be scanned");
+	printk("SCAN_MALICIOUS:Can't open file to be scanned\n");
 	ret = false;
         goto out;
   }	
   new_file = filp_open(new_path,O_WRONLY|O_CREAT,0644);
   if(!new_file || IS_ERR(new_file)){
-        printk("\nCan't open file to be scanned");
+        printk("SCAN_MALICIOUS:Can't open file to be scanned\n");
         ret = false;
         goto out;
   } 
@@ -243,18 +235,18 @@ rename_malicious_file (char *old_path)
 dummyfp = filp_open (DUMMY_FILE, O_WRONLY | O_CREAT | O_TRUNC, 0644);
 if (dummyfp == NULL || IS_ERR (dummyfp))
 {
-      printk (KERN_ERR "cannot open dummy file\n");
+      printk (KERN_ERR "SCAN_MALICIOUS:cannot open dummy file\n");
       goto out;
 }
 
-printk("Dummy file opened \n");	
+printk("SCAN_MALICIOUS:Dummy file opened \n");	
 oldfs = get_fs ();
 set_fs (KERNEL_DS);
 err = vfs_write (dummyfp, old_path, strlen(old_path), &dummyfp->f_pos);
 set_fs (oldfs);
 
 if (err < 0){
-	printk("error %d while writing to tmp file\n", err);
+	printk("SCAN_MALICIOUS:error %d while writing to tmp file\n", err);
 }
 
 if (!IS_ERR(dummyfp))
@@ -288,7 +280,7 @@ scan_black_list (int src_offset, struct file_data *fdata,
 
   if (src_offset < 0)
     {
-      printk (KERN_ERR "invalid source offset\n");
+      printk (KERN_ERR "SCAN_BLACKLIST:invalid source offset\n");
       return -1;
     }
   def_size = vir_def->size;
@@ -299,7 +291,7 @@ scan_black_list (int src_offset, struct file_data *fdata,
       /*end of file, not enough data, not a virus */
       if (src_offset + DEF_SIZE >= fdata->size)
 	{
-	  printk ("file is exhausted. No virus found\n");
+	  printk ("SCAN_BLACKLIST:file is exhausted. No virus found\n");
 	  return 0;
 	}
       
@@ -324,7 +316,7 @@ scan_black_list (int src_offset, struct file_data *fdata,
 
 	if (cmp_res == 0)
 	{
-		printk (KERN_INFO "SCAN: virus found in file\n");
+		printk (KERN_INFO "SCAN_BLACKLIST:virus found in file\n");
 		
 		/* should probably return the number associated with the malicious signature */
 
@@ -404,7 +396,7 @@ struct file_data *create_file_data_struct (struct file *filp)
       fdata->offset = 0;
       read_size = BUFFER_SIZE;
 
-      printk ("FILE STRUCTURE: size of the buffer is %d\n", fdata->size);
+      printk ("FILE_BUFF_CREATE: size of the file buffer is %d\n", fdata->size);
     }
 
   oldfs = get_fs ();
@@ -424,7 +416,7 @@ struct file_data *create_file_data_struct (struct file *filp)
       fdata->file_exhausted = 1;
     }
 
-  printk (KERN_INFO "File data read into structure\n");
+  printk (KERN_INFO "FILE_BUFF_CREATE: File data read into structure\n");
   return fdata;
 
 out_free:
@@ -453,12 +445,12 @@ read_virus_def (void)
     }
 
   fsize = dbfilp->f_inode->i_size;
-  printk ("file size is %d\n", fsize);
+  printk ("READ_VIRUSDEF: virus file size is %d\n", fsize);
   vir_def = kmalloc (sizeof (struct virus_def) + fsize, GFP_KERNEL);
 
   if (vir_def == NULL)
     {
-      printk ("could not allocate memory for virus definitions");
+      printk ("READ_VIRUSDEF:could not allocate memory for virus definitions\n");
       goto out;
     }
 
@@ -473,12 +465,12 @@ read_virus_def (void)
   if (err < 0)
     {
       printk (KERN_ERR
-	      "VIR_DEF: error occurred when reading from virus definitions\n");
+	      "READ_VIRUSDEF: error occurred when reading from virus definitions\n");
       /* freeing the virus definitions buffer */
       goto out_free;
     }
 
-  printk (KERN_INFO "virus definitions loaded\n");
+  printk (KERN_INFO "READ_VIRUSDEF: virus definitions loaded\n");
   return vir_def;
 out_free:
   kfree (vir_def);
@@ -532,7 +524,7 @@ get_file_data (struct file_data *fdata, struct file *filp)
       fdata->size = err;
     }
 
-  printk (KERN_INFO "file data read into structure\n");
+  printk (KERN_INFO "RELOAD_FILE: file read\n");
   return err;
 
 out_free:
