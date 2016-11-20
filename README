@@ -1,7 +1,77 @@
-HOW TO RUN THE ANTIVIRUS ?
-1. Do make in the directory
-2. Run 'sh install.sh'
-3. You are now secured !
-4. Copy the antivirus-update script to usr/local/bin directory
-5. Copy the antivirus.properties file to the /tmp directory
-6. The virus.db and whitelist.db file will be copied to the /root directory
+Antivirus for Linux
+
+Introduction
+We have developed a "simple" antivirus scanner that supports updates over the Internet. The antivirus detects malware based on signatures of malicious programs. Each signature is a series of sequential bytes from the assembly instructions of an executable. In addition to the virus database, we also support a whitelist of programs that are definitely not malware. This whitelist is populated with the standard programs and files of a Linux distribution to ensure that the antivirus will never "break" the system. Whitelist is based on the SHA-1 hashes of standard linux utilities.
+If a file's hash is on that list, then we don't scan it further. Both of these lists (database of viruses/whitelist of legitimate programs) are updatable. A user of the operating system can run a command such as, antivirus-update which will then fetch the latest databases and store them securely on the machine. The antivirus can be run in two scanning modes, on-demand and on-access.
+
+In on-demand scanning, the user can run a program to scan a file, or a directory containing files, e.g. antivirus-scan /home/jack/Downloads. If a file is found to be infected we remove all permissions (e.g. chmod 000 virus), append a ".virus" string to the file's name and alert the user.
+In on-access scanning, when the user tries to execute, or open a file without having checked it with on-demand scanning, if the file is a virus, then the file is not opened and the permissions are removed and the file is renamed. In order to protect the user, the file is scanned before it is opened. In addition, a message is sent to the user-space and it is shown to the user, e.g. a graphical pop-up, that explains that the operation failed because a virus was detected.
+
+How to compile and run
+	- execute make command inside the linux-antivirus folder
+	- run script install_module.sh to install antivirus.ko module
+	- execute command antivirus-scan on a file or folder that you need to scan on demand
+	- every file that you access is scanned for virus before opening/ executing it
+	- copy the antivirus-update script to the user/local/bin folder in order to execute it from any location
+	- copy the properties file used used by the antivirus-update script to the /tmp folder
+	- run script antivirus-update to update the blacklist and whitelist
+	- the module needs to be reinstalled for the new pattern to be taken into consideration while scanning
+	- create the dummy file used by the graphical popup?
+	
+Files Added
+	- linux-antivirus/Makefile - code to build antivirus.ko module and also compile user program popup.c
+	- linux-antivirus/install.sh - to install antivirus.ko module
+	- linux-antivirus/uninstal.sh - to uninstall antivirus.ko module
+	- linux-antivirus/popup.c - code to facilitate display of graphical popup for on-access scanning
+	- /usr/local/bin/antivirus-update - script to fetch the latest blacklist and whitelist from remote location
+	- /tmp/antivirus.properties - properties used by the antivirus-update script
+	- linux-antivirus/kdriver.c - code to change the syscall table to pick the new open and exec syscalls that contain hooks for scanning the file
+	              before invoking the original open/exec syscalls on loading the module. Also, reads the whitelist into a linked-list.
+	- linux-antivirus/kern_helper.c - code that computes the sha1 of the file, checks for the sha1 in the whitelist, scans the file for the patterns in 
+	                                  blacklist, renames the file if a virus is found and removes the permission.
+
+
+Implementation Details
+
+1. Establishing the hook for open and exec syscalls:
+   - Determined the kernel version from the file /proc/version.
+   - Grabbed the syscall table address from the file /boot/System.map-kernelversion.
+   - Saved the address of the default open and exec syscalls, that need to be restored on module unload.
+   - Hooked the new open and exec syscalls by overridding the address of the default open and exec syscalls in the syscall table.
+   - The new open and exec syscalls scan the file for the virus as per the blacklist file and then invoke the default syscall implementation
+	 if the file doesn't contain virus or if the sha1 of the file matches the whitelisted ones.
+	 
+2. Check if the file is whitelisted:
+   - Read the file in chuncks of PAGE_SIZE, and computed the sha1 using the crypto_hash_init, crypto_hash_update and crypto_hash_final functions.
+   - Compared the computed sha1 with the list of sha1 read from the whitelist on loading the module. 
+   - If the sha1 doesn't match the entries in the whitelist, then the file is scanned for virus patterns.
+   - If the file's sha1 is found in the whitelist, then it is not scanned for viruses and the default syatem call implementation is invoked.
+   
+3. Check for virus patterns in the file:
+   - Read the file in chunks of PAGE_SIZE.
+   - Check if the block contains the patterns in the blacklist file. If found, rename the file with .virus extension and remove the permissions.
+   - If the block doesn't match with the patterns, then scan the next PAGE_SIZE block for virus patterns till end of file.
+
+4. Support antivirus update over the Internet:
+   - Execute the script to update the antivirus.
+   - The antivirus-update script can be run form any location.
+   - It updates both the backlist and the whitelist by fetching it from the remote host.
+   - It downloads the virus.db file and whitelist.db file from the remote host and saves it in the root folder.
+   - Modify the permissions of the updated blacklist and whitelist file?
+   
+5. On demand scanning:
+   - Scans any directory or file which the user requests to be scanned.
+   - nftw (file tree walk) walks through the directory tree that is located under the directory, and calls a function once for each entry in the tree.
+     By default, directories are handled before the files and subdirectories they contain (preorder traversal).   
+   - We trace all the possible file paths and write it to a file.
+   - Later, we read the file and invoke open syscall for each entry path in that file to check for virus.
+   - The open syscall handles the comparison logic and acts accordingly.
+   
+6. Graphical popup for on access scanning:
+  - After the kernel detects any virus is a file, it copies the old file name which was referred and marked as a virus to a dummy file located at 
+    /root.
+  - The user process keeps checking the file for contents every 1 sec.
+  - If content found,it will used display the message to the user with the help of notify, in the form of a bubble to the right side of screen.
+  
+   
+
