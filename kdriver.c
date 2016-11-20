@@ -250,7 +250,7 @@ bool is_file_malicious(const char *path){
 	err = scan(filp, fdata, vdef);
 	if (err > 0){
 	  printk("\nFile contains virus\n");
-	  printk("\nRenaming file to .virus")
+	  printk("\nRenaming file to .virus");
 	  is_renamed = rename_malicious_file (kpath);
 	  if(is_renamed)
 		printk("\nRenamed file to .virus");
@@ -383,13 +383,15 @@ static int __init on_init(void)
 	printk(KERN_EMERG "sizeof(sys_call_table) : %zx\n", sizeof(syscall_table));
 	if (syscall_table != NULL) {
 		write_cr0(read_cr0() & (~0x10000));
-		original_write = (void *)syscall_table[__NR_write];
-		original_read = (void *)syscall_table[__NR_read];
+		/* get default impl func pointers*/
 		original_open = (void *)syscall_table[__NR_open];
 		original_execve = (void *)syscall_table[__NR_execve];
+
+		/* replace with our hooked system calls */
 		syscall_table[__NR_open] = (unsigned long) &new_open;
 		syscall_table[__NR_execve] = (unsigned long) &new_execve;
 		write_cr0(read_cr0() | 0x10000);
+
 		printk(KERN_EMERG "[+] onload: sys_call_table hooked\n");
 		vdef = read_virus_def();
 		if(!read_white_list())
