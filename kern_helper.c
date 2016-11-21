@@ -246,13 +246,10 @@ set_fs (oldfs);
 if (err < 0){
 	printk("SCAN_MALICIOUS:error %d while writing to tmp file\n", err);
 }
-
-if (dummyfp && !IS_ERR(dummyfp))
-	filp_close(dummyfp, NULL);
   
 out:
-  if(dummyfp)
-	kfree(dummyfp);
+  if(dummyfp && !IS_ERR(dummyfp))
+        filp_close(dummyfp, NULL);
   if(new_path)
 	kfree(new_path);
   if(old_file && !IS_ERR(old_file))
