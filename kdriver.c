@@ -209,7 +209,8 @@ bool is_file_malicious(const char *path){
 	filp = filp_open(kpath, O_RDONLY, 0);
 	if (filp == NULL || IS_ERR(filp)) {
 		printk(KERN_ERR "Cannot open file\n");
-		is_malicious = true;
+		/* if kernel cant open this file then user also cant, hence false*/
+		is_malicious = false;
 		goto out;
 	}
 	/* checking if the file is regular, if file is not regular invoking original_open*/
@@ -224,10 +225,11 @@ bool is_file_malicious(const char *path){
 	if (fdata == NULL) {
 		printk(KERN_ERR
 			"error occured while reading from file to scan\n");
-		is_malicious = true;
+		/* if kernel cant read from this file then user also cant, hence false*/
+		is_malicious = false;
 		goto out_vdef;
 	}
-	printk("FDATA: file exhausted %d\n", fdata->file_exhausted);
+//	printk("FDATA: file exhausted %d\n", fdata->file_exhausted);
 
 	/* checking if the file is white listed*/
 	ret_val = is_white_listed(filp, fdata);
@@ -248,6 +250,7 @@ bool is_file_malicious(const char *path){
         }
 
 	err = scan(filp, fdata, vdef);
+
 	if (err > 0){
 	  printk("\nFile contains virus\n");
 	  printk("\nRenaming file to .virus");
@@ -266,7 +269,8 @@ bool is_file_malicious(const char *path){
 	kfree(vdef);
 	vdef = NULL;
  out_close:
-	filp_close(filp, NULL);
+	if (filp && !IS_ERR(filp))
+		filp_close(filp, NULL);
  out:
 	if(kpath){	
 		kfree(kpath);
@@ -278,11 +282,12 @@ bool is_file_malicious(const char *path){
 asmlinkage long new_open(const char __user * path, int flags, umode_t mode)
 {
 	bool is_malicious = false;
-	
+
 	if(flags  <= 32768){
 		is_malicious = is_file_malicious(path);
 		printk("\nIn kernel flags = %d",flags);
 	}
+
 	if(!is_malicious)
 		return original_open(path, flags, mode);
 	else
@@ -365,7 +370,7 @@ bool read_white_list(void) {
 	}while(bytes_read > 0);
 	
 	out:
-	if(!IS_ERR(whitelistdb))
+	if(whitelistdb && !IS_ERR(whitelistdb))
 		filp_close(whitelistdb, NULL);
 	if(buffer_orig)
 		kfree(buffer_orig);

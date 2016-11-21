@@ -70,7 +70,7 @@ Implementation Details
 6. Graphical popup for on access scanning:
   - After the kernel detects any virus is a file, it copies the old file name which was referred and marked as a virus to a dummy file located at 
     /root.
-  - The user process keeps checking the file for contents every 1 sec.
+  - The user process keeps checking the file for change in its size for every 1 sec. After we have called stat on the file first time the inode will be in-memory. So afterwards we will get memory resident inode so this polling is not I/O heavy. Inotify/network-signal would not have worked as we are working deep in kernel and all the notification mechanisms are bypassed here.
   - If content found,it will used display the message to the user with the help of notify, in the form of a bubble to the right side of screen.
   
    

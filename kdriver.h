@@ -20,7 +20,7 @@
 #define TMP_TEST_PATH "/home/"
 #define TMP_SIZE 10
 #define BUFFER_SIZE 4096
-#define DEF_SIZE 10
+#define DEF_SIZE 1
 #define SHA1_LENGTH 20
 #define VIRUS_FILE_EXTENSION ".virus"
 

@@ -1,5 +1,3 @@
-set -x
-
 pkill popup
 gcc -o popup popup.c
 ./popup &

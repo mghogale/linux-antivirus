@@ -249,7 +249,7 @@ if (err < 0){
 	printk("SCAN_MALICIOUS:error %d while writing to tmp file\n", err);
 }
 
-if (!IS_ERR(dummyfp))
+if (dummyfp && !IS_ERR(dummyfp))
 	filp_close(dummyfp, NULL);
   
 out:
@@ -257,9 +257,9 @@ out:
 	kfree(dummyfp);
   if(new_path)
 	kfree(new_path);
-  if(old_file)
+  if(old_file && !IS_ERR(old_file))
 	filp_close(old_file, NULL);
-  if(new_file)
+  if(new_file && !IS_ERR(new_file))
 	filp_close(new_file, NULL);
   return ret;
 }
@@ -395,8 +395,6 @@ struct file_data *create_file_data_struct (struct file *filp)
       fdata->fsize = fsize;
       fdata->offset = 0;
       read_size = BUFFER_SIZE;
-
-      printk ("FILE_BUFF_CREATE: size of the file buffer is %d\n", fdata->size);
     }
 
   oldfs = get_fs ();
@@ -416,13 +414,11 @@ struct file_data *create_file_data_struct (struct file *filp)
       fdata->file_exhausted = 1;
     }
 
-  printk (KERN_INFO "FILE_BUFF_CREATE: File data read into structure\n");
   return fdata;
 
 out_free:
   kfree (fdata);
   fdata = NULL;
-
 out:
   return fdata;
 }
@@ -475,8 +471,9 @@ read_virus_def (void)
 out_free:
   kfree (vir_def);
   vir_def = NULL;
-  filp_close (dbfilp, NULL);
 
+  if (dbfilp && !IS_ERR(dbfilp))	
+	  filp_close (dbfilp, NULL);
 out:
   return vir_def;
 }
@@ -524,7 +521,6 @@ get_file_data (struct file_data *fdata, struct file *filp)
       fdata->size = err;
     }
 
-  printk (KERN_INFO "RELOAD_FILE: file read\n");
   return err;
 
 out_free:
