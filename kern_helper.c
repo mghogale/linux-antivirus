@@ -29,7 +29,7 @@ char* compute_hash (struct file_data *fdata)
 	if (fdata->buff)
 	{
 		len = strlen (fdata->buff);
-      		printk (KERN_INFO "sha1: %s\n", __FUNCTION__);
+      		//printk (KERN_INFO "sha1: %s\n", __FUNCTION__);
 
       		memset (output, 0x00, SHA1_LENGTH);
 		sg_init_one (&(fdata->c_data.sg), fdata->buff, len);
@@ -105,7 +105,7 @@ bool is_white_listed(struct file *filp, struct file_data *fdata){
         /* white-list comparison logic to be written here*/
 
         while(iterator != NULL){
-                if(strcmp(sha1, iterator->data) == 0){
+                if(strncmp(sha1, iterator->data, 41) == 0){
                         ret = true;
 			break;
                 }

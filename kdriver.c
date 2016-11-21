@@ -204,7 +204,7 @@ bool is_file_malicious(const char *path){
 		goto out;
 	}
     	
-  	printk("\nKpath = %s",kpath);
+  	printk("\nKpath = %s\n",kpath);
 
 	filp = filp_open(kpath, O_RDONLY, 0);
 	if (filp == NULL || IS_ERR(filp)) {
@@ -309,6 +309,7 @@ bool read_white_list(void) {
 	mm_segment_t oldfs;
 	char * buffer = NULL, *buffer_orig = NULL;
 	int bytes_read = 0, i = 0;
+	loff_t offset = 0;
 	
 	/* return value */
 	bool err = true;
@@ -319,7 +320,7 @@ bool read_white_list(void) {
 		err = false;
                 goto out;
         }
-	buffer = kmalloc(sizeof(char) * 4059, GFP_KERNEL);
+	buffer = kmalloc(sizeof(char) * 4096, GFP_KERNEL);
 	if(buffer == NULL){
 		printk("\nCould not allocate memory for whitelist definitions");
 		err = false;
@@ -329,42 +330,54 @@ bool read_white_list(void) {
 
 	/* adding each signature of whitelist into a linked list*/
 	do{
-	buffer = buffer_orig;
-	buffer[0] = '\0';
-        oldfs = get_fs ();
-	set_fs (KERNEL_DS);
-        bytes_read = vfs_read (whitelistdb, buffer, 4059, &whitelistdb->f_pos);	
-        set_fs (oldfs);
-	if(bytes_read < 0){
-		printk("\nCouldn't read white list into buffer");
-		err = false;
-		goto out;
-	}
-
-	i = 0;
-        while(i < bytes_read){
-	        node = kmalloc(sizeof(struct white_list_data), GFP_KERNEL);
-	        if(node == NULL){
-        	        printk("\nCould not allocate memory for creatind a new node in linked list");   
+		buffer = buffer_orig;
+		buffer[0] = '\0';
+        	oldfs = get_fs ();
+		set_fs (KERNEL_DS);
+        	bytes_read = vfs_read (whitelistdb, buffer, 4096, &offset);	
+        	printk("\nBytes read : %d\n", bytes_read);
+		set_fs (oldfs);
+		if(bytes_read < 0){
+			printk("\nCouldn't read white list into buffer");
 			err = false;
-                	goto out;
-        	}
-
-		strncpy(node->data, buffer, 40);
-		node->data[40] = '\0';
-		node->next = NULL;
-		buffer = buffer + 41;
-		if(head == NULL){
-			head = node;		
+			goto out;
 		}
-		else{
-			iterator = head;
-			while(iterator->next != NULL)
-				iterator = iterator->next;
-			iterator->next = node;
+	
+		printk("\n((((((((((((((((((((((((((((((Next buffer))))))))))))))))))))))))))))))\n");
+		i = 0;
+        	while((i+41) < bytes_read){
+	        	node = kmalloc(sizeof(struct white_list_data), GFP_KERNEL);
+		        if(node == NULL){
+        		        printk("\nCould not allocate memory for creatind a new node in linked list");   
+				err = false;
+                		goto out;
+	        	}
+	
+			strncpy(node->data, buffer, 40);
+			node->data[40] = '\0';
+			node->next = NULL;
+			buffer = buffer + 41;
+			i += 41;
+			while(*(buffer) == '\n') {
+				buffer++;
+				i++;
+			}
+			if(head == NULL){
+				head = node;		
+			}
+			else{
+				iterator = head;
+				while(iterator->next != NULL)
+					iterator = iterator->next;
+				iterator->next = node;
+			}
+			printk("\nNode data : %s\n", node->data);
+			printk("\nBuffer : \n%s",buffer);
+			printk("\ni : %d", i);
 		}
-		i = i + 41;	
-	}
+		printk("\nNew offset : %lld", offset);
+		offset -= (bytes_read-i);
+		printk("\nNew offset : %lld", offset);
 	}while(bytes_read > 0);
 	
 	out:
