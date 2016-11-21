@@ -229,7 +229,6 @@ bool is_file_malicious(const char *path){
 		is_malicious = false;
 		goto out_vdef;
 	}
-//	printk("FDATA: file exhausted %d\n", fdata->file_exhausted);
 
 	/* checking if the file is white listed*/
 	ret_val = is_white_listed(filp, fdata);
@@ -404,10 +403,6 @@ static int __init on_init(void)
 		else{
 			printk(KERN_INFO "White list read successfully\n");
 			iterator = head;
-        		while(iterator != NULL){
-                		printk("\nData in list:%s ",iterator->data);
-		                iterator = iterator->next;
-        		}
 		}
 	
 	} else {

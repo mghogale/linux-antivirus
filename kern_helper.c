@@ -51,8 +51,7 @@ char* compute_hash (struct file_data *fdata)
 				goto out;
 		        }
 			else
-			{		
-	  			printk ("Printing hash\n");
+			{	
 		  		for (i = 0; i < 20; i++)
 		    		{
 					sprintf(sha1_byte, "%02x", output[i]);
@@ -117,7 +116,6 @@ bool is_white_listed(struct file *filp, struct file_data *fdata){
 	if(sha1)
 		kfree(sha1);
 	return ret;
-        /* white-list logic ends*/
 }
 
 /* scan the file */
@@ -290,10 +288,7 @@ scan_black_list (int src_offset, struct file_data *fdata,
     {
       /*end of file, not enough data, not a virus */
       if (src_offset + DEF_SIZE >= fdata->size)
-	{
-	  printk ("SCAN_BLACKLIST:file is exhausted. No virus found\n");
 	  return 0;
-	}
       
 	sig_size = get_signature_len(vir_def);
 	pref_len = get_prefix_len(vir_def);
@@ -316,10 +311,8 @@ scan_black_list (int src_offset, struct file_data *fdata,
 
 	if (cmp_res == 0)
 	{
-		printk (KERN_INFO "SCAN_BLACKLIST:virus found in file\n");
-		
+		printk (KERN_INFO "SCAN_BLACKLIST:virus found in file\n");		
 		/* should probably return the number associated with the malicious signature */
-
 		err = 100;
 		kfree(virus_name);
 		goto out;
@@ -329,8 +322,6 @@ scan_black_list (int src_offset, struct file_data *fdata,
 	record_end = sig_size + 1;
 	vir_def_offset = sig_size + 1;
 	vir_def->offset = sig_size;
-
-//       printk("SCAN: src offset %d vir_def offset %d \n", src_offset, vir_def_offset);
     }
 
 out:
@@ -441,7 +432,6 @@ read_virus_def (void)
     }
 
   fsize = dbfilp->f_inode->i_size;
-  printk ("READ_VIRUSDEF: virus file size is %d\n", fsize);
   vir_def = kmalloc (sizeof (struct virus_def) + fsize, GFP_KERNEL);
 
   if (vir_def == NULL)
