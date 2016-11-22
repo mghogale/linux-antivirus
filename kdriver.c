@@ -208,7 +208,6 @@ bool is_file_malicious(const char *path){
 
 	filp = filp_open(kpath, O_RDONLY, 0);
 	if (filp == NULL || IS_ERR(filp)) {
-		printk(KERN_ERR "Cannot open file\n");
 		/* if kernel cant open this file then user also cant, hence false*/
 		is_malicious = false;
 		goto out;
@@ -227,14 +226,14 @@ bool is_file_malicious(const char *path){
 			"error occured while reading from file to scan\n");
 		/* if kernel cant read from this file then user also cant, hence false*/
 		is_malicious = false;
-		goto out_vdef;
+		goto out_close;
 	}
 
 	/* checking if the file is white listed*/
 	ret_val = is_white_listed(filp, fdata);
 	if(ret_val){
 		printk("\nFile is white listed!");
-		goto out_vdef;
+		goto out_close;
 	}
 	else{
 		printk("\nFile is not white listed.. checking for blacklist!");
@@ -248,10 +247,24 @@ bool is_file_malicious(const char *path){
 		}
         }
 
+	/* resetting the file buffer to the previous position */
+	kfree(fdata);
+	fdata = NULL;
+	/* reset file pointer to the start of the file*/
+	filp->f_pos = 0;
+	fdata = create_file_data_struct(filp);
+
+	if (fdata == NULL) {
+		printk(KERN_ERR "error occured while reading from file to scan\n");
+		/* if kernel cant read from this file then user also cant, hence false*/
+		is_malicious = false;
+		goto out_close;
+	}
+
 	err = scan(filp, fdata, vdef);
 
 	if (err > 0){
-	  printk("\nFile contains virus\n");
+	  printk("\n*********************File contains virus %s ****************************\n", kpath);
 	  printk("\nRenaming file to .virus");
 	  is_malicious = true;
 	  is_renamed = rename_malicious_file (kpath);
@@ -263,9 +276,6 @@ bool is_file_malicious(const char *path){
 	
 	kfree(fdata);
 	fdata = NULL;
- out_vdef:
-	kfree(vdef);
-	vdef = NULL;
  out_close:
 	if (filp && !IS_ERR(filp))
 		filp_close(filp, NULL);
@@ -296,7 +306,7 @@ asmlinkage long new_execve(const char __user *filename, const char __user *const
 {
         bool is_malicious = false;
 	is_malicious = is_file_malicious(filename);
-	printk("\nIntercepted exexc");
+	printk("execve:");
         if(!is_malicious)
 		return original_execve(filename, argv, envp);
 	else

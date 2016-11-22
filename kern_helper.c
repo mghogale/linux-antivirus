@@ -452,7 +452,7 @@ read_virus_def (void)
       goto out_free;
     }
 
-  printk (KERN_INFO "READ_VIRUSDEF: virus definitions loaded\n");
+  printk (KERN_INFO "virus definitions loaded\n");
   return vir_def;
 out_free:
   kfree (vir_def);
