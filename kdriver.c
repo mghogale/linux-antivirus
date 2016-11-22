@@ -214,12 +214,19 @@ bool is_file_malicious(const char *path){
     	
   	printk("\nKpath = %s\n",kpath);
 
+	if (strstr(kpath, VIRUS_FILE_EXTENSION)){
+		printk("File %s is already virus. Aborting scan\n", kpath);
+		is_malicious = true;
+		goto out;	
+	}	
+
 	filp = filp_open(kpath, O_RDONLY, 0);
 	if (filp == NULL || IS_ERR(filp)) {
 		/* if kernel cant open this file then user also cant, hence false*/
 		is_malicious = false;
 		goto out;
 	}
+
 	/* checking if the file is regular, if file is not regular invoking original_open*/
 	input_file_inode = file_inode(filp);
 	input_file_mode = input_file_inode->i_mode;
