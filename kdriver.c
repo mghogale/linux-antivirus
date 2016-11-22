@@ -186,6 +186,14 @@ char *acquire_kernel_version(char *buf)
 	return kernel_version;
 }
 
+bool is_flag_valid(int flags){
+	bool ret = false;
+	if(flags  <= 32768)
+		ret = true;
+	return ret;
+}
+
+
 bool is_file_malicious(const char *path){
 	char *kpath;
 	struct file *filp;
@@ -291,7 +299,7 @@ asmlinkage long new_open(const char __user * path, int flags, umode_t mode)
 {
 	bool is_malicious = false;
 
-	if(flags  <= 32768){
+	if(is_flag_valid(flags)){
 		is_malicious = is_file_malicious(path);
 		printk("\nIn kernel flags = %d",flags);
 	}
