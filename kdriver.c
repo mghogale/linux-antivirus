@@ -319,7 +319,6 @@ bool read_white_list(void) {
 	mm_segment_t oldfs;
 	char * buffer = NULL, *buffer_orig = NULL;
 	int bytes_read = 0, i = 0;
-	loff_t offset = 0;
 	
 	/* return value */
 	bool err = true;
@@ -330,7 +329,7 @@ bool read_white_list(void) {
 		err = false;
                 goto out;
         }
-	buffer = kmalloc(sizeof(char) * 4096, GFP_KERNEL);
+	buffer = kmalloc(sizeof(char) * 4059, GFP_KERNEL);
 	if(buffer == NULL){
 		printk("\nCould not allocate memory for whitelist definitions");
 		err = false;
@@ -344,7 +343,7 @@ bool read_white_list(void) {
 		buffer[0] = '\0';
         	oldfs = get_fs ();
 		set_fs (KERNEL_DS);
-        	bytes_read = vfs_read (whitelistdb, buffer, 4096, &offset);	
+        	bytes_read = vfs_read (whitelistdb, buffer, 4059, &whitelistdb->f_pos);	
         	printk("\nBytes read : %d\n", bytes_read);
 		set_fs (oldfs);
 		if(bytes_read < 0){
@@ -353,9 +352,8 @@ bool read_white_list(void) {
 			goto out;
 		}
 	
-		printk("\n((((((((((((((((((((((((((((((Next buffer))))))))))))))))))))))))))))))\n");
 		i = 0;
-        	while((i+41) < bytes_read){
+        	while(i < bytes_read){
 	        	node = kmalloc(sizeof(struct white_list_data), GFP_KERNEL);
 		        if(node == NULL){
         		        printk("\nCould not allocate memory for creatind a new node in linked list");   
@@ -368,10 +366,6 @@ bool read_white_list(void) {
 			node->next = NULL;
 			buffer = buffer + 41;
 			i += 41;
-			while(*(buffer) == '\n') {
-				buffer++;
-				i++;
-			}
 			if(head == NULL){
 				head = node;		
 			}
@@ -381,13 +375,7 @@ bool read_white_list(void) {
 					iterator = iterator->next;
 				iterator->next = node;
 			}
-			printk("\nNode data : %s\n", node->data);
-			printk("\nBuffer : \n%s",buffer);
-			printk("\ni : %d", i);
 		}
-		printk("\nNew offset : %lld", offset);
-		offset -= (bytes_read-i);
-		printk("\nNew offset : %lld", offset);
 	}while(bytes_read > 0);
 	
 	out:
@@ -401,7 +389,6 @@ bool read_white_list(void) {
 static int __init on_init(void)
 {
 	char *kernel_version = kmalloc(MAX_VERSION_LEN, GFP_KERNEL);
-	struct white_list_data *iterator = head;
 	printk(KERN_WARNING "Loading anti-virus!\n");
 	get_system_call_table(acquire_kernel_version(kernel_version));
 	printk(KERN_EMERG "syscall table address: %p\n", syscall_table);
@@ -424,7 +411,6 @@ static int __init on_init(void)
 			printk(KERN_ERR "Could not read white list\n");
 		else{
 			printk(KERN_INFO "White list read successfully\n");
-			iterator = head;
 		}
 	
 	} else {

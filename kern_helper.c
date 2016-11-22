@@ -104,7 +104,7 @@ bool is_white_listed(struct file *filp, struct file_data *fdata){
         /* white-list comparison logic to be written here*/
 
         while(iterator != NULL){
-                if(strncmp(sha1, iterator->data, 41) == 0){
+                if(strncmp(sha1, iterator->data, 40) == 0){
                         ret = true;
 			break;
                 }
