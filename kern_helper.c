@@ -29,7 +29,6 @@ char* compute_hash (struct file_data *fdata)
 	if (fdata->buff)
 	{
 		len = strlen (fdata->buff);
-      		//printk (KERN_INFO "sha1: %s\n", __FUNCTION__);
 
       		memset (output, 0x00, SHA1_LENGTH);
 		sg_init_one (&(fdata->c_data.sg), fdata->buff, len);
@@ -230,7 +229,7 @@ rename_malicious_file (char *old_path)
 
   /* writing renamed file to dummy file which will be read from user space to display pop up*/
 
-dummyfp = filp_open (DUMMY_FILE, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+dummyfp = filp_open (DUMMY_FILE, O_WRONLY | O_CREAT | O_APPEND, 0644);
 if (dummyfp == NULL || IS_ERR (dummyfp))
 {
       printk (KERN_ERR "SCAN_MALICIOUS:cannot open dummy file\n");
