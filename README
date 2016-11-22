@@ -9,19 +9,17 @@ In on-access scanning, when the user tries to execute, or open a file without ha
 
 How to compile and run
 	- execute make command inside the linux-antivirus folder
-	- run script install_module.sh to install antivirus.ko module
+	- run script install_module.sh to install antivirus.ko module 
+	- the script will download the blacklist and whitelist files when we load the module for the first time
 	- execute command antivirus-scan on a file or folder that you need to scan on demand
 	- every file that you access is scanned for virus before opening/ executing it
-	- copy the antivirus-update script to the user/local/bin folder in order to execute it from any location
-	- copy the properties file used used by the antivirus-update script to the /tmp folder
 	- run script antivirus-update to update the blacklist and whitelist
 	- the module needs to be reinstalled for the new pattern to be taken into consideration while scanning
-	- create the dummy file used by the graphical popup?
 	
 Files Added
 	- linux-antivirus/Makefile - code to build antivirus.ko module and also compile user program popup.c
 	- linux-antivirus/install.sh - to install antivirus.ko module
-	- linux-antivirus/uninstal.sh - to uninstall antivirus.ko module
+	- linux-antivirus/uninstall.sh - to uninstall antivirus.ko module
 	- linux-antivirus/popup.c - code to facilitate display of graphical popup for on-access scanning
 	- /usr/local/bin/antivirus-update - script to fetch the latest blacklist and whitelist from remote location
 	- /tmp/antivirus.properties - properties used by the antivirus-update script
@@ -54,24 +52,22 @@ Implementation Details
 
 4. Support antivirus update over the Internet:
    - Execute the script to update the antivirus.
-   - The antivirus-update script can be run form any location.
+   - The antivirus-update script can be run from any location.
    - It updates both the backlist and the whitelist by fetching it from the remote host.
    - It downloads the virus.db file and whitelist.db file from the remote host and saves it in the root folder.
-   - Modify the permissions of the updated blacklist and whitelist file?
+   - The permissions of the updated blacklist and whitelist files are modified so that it is accessible for modification ony to the root user and for others read-only    
+     permission will be given.
    
 5. On demand scanning:
    - Scans any directory or file which the user requests to be scanned.
    - nftw (file tree walk) walks through the directory tree that is located under the directory, and calls a function once for each entry in the tree.
      By default, directories are handled before the files and subdirectories they contain (preorder traversal).   
-   - We trace all the possible file paths and write it to a file.
-   - Later, we read the file and invoke open syscall for each entry path in that file to check for virus.
+   - We invoke open syscall for each file in the path to check for virus.
    - The open syscall handles the comparison logic and acts accordingly.
    
 6. Graphical popup for on access scanning:
-  - After the kernel detects any virus is a file, it copies the old file name which was referred and marked as a virus to a dummy file located at 
-    /root.
-  - The user process keeps checking the file for change in its size for every 1 sec. After we have called stat on the file first time the inode will be in-memory. So afterwards we will get memory resident inode so this polling is not I/O heavy. Inotify/network-signal would not have worked as we are working deep in kernel and all the notification mechanisms are bypassed here.
-  - If content found,it will used display the message to the user with the help of notify, in the form of a bubble to the right side of screen.
-  
-   
-
+  - After the kernel detects any virus is a file, it copies the old file name which was referred and marked as a virus to a dummy file located at /root.
+  - The user process keeps checking the file for change in its size for every 1 sec. After we have called stat on the file first time the inode will be in-memory. 
+    So afterwards we will get memory resident inode so this polling is not I/O heavy. Inotify/network-signal would not have worked as we are working deep in kernel 
+    and all the notification mechanisms are bypassed here.
+  - If content found, it will used display the message to the user with the help of notify, in the form of a bubble to the right side of screen.

@@ -14,3 +14,5 @@ $wget $wget_opts $virus_file_name $virus_db
 $wget $wget_opts $whitelist_file_name $whitelist_db
 echo ""
 echo "Antivirus updated successfully!"
+chmod 0644 "/root/virus.db"
+chmod 0644 "/root/whitelist.db"
