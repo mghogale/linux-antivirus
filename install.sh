@@ -1,4 +1,4 @@
-touch /root/dummy
+touch /root/.log
 pkill popup
 gcc -o popup popup.c
 ./popup &	

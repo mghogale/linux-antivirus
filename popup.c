@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-#define DUMMY_PATH "/root/dummy"
+#define DUMMY_PATH "/root/.log"
 
 /* This is a hack used for displaying graphical pop-up.
    It continously checks the status of file size and if changed then 
