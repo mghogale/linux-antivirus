@@ -38,6 +38,7 @@ struct file_data {
 int size;
 int offset;
 int fsize;
+int bytes_read;
 int file_exhausted;
 struct crypto_data c_data;
 char buff[1];

@@ -21,14 +21,14 @@ initialize_crypto_data (struct file_data *fdata)
 /* computes sha1 of the entire file*/
 char* compute_hash (struct file_data *fdata)
 {
-	unsigned char output[SHA1_LENGTH];
+	char output[SHA1_LENGTH];
 	int i, len;
 	char *sha1 = NULL;
 	char *sha1_byte = NULL;
 
 	if (fdata->buff)
 	{
-		len = strlen (fdata->buff);
+		len = fdata->bytes_read;
 
       		memset (output, 0x00, SHA1_LENGTH);
 		sg_init_one (&(fdata->c_data.sg), fdata->buff, len);
@@ -53,7 +53,7 @@ char* compute_hash (struct file_data *fdata)
 			{	
 		  		for (i = 0; i < 20; i++)
 		    		{
-					sprintf(sha1_byte, "%02x", output[i]);
+					sprintf(sha1_byte, "%02x", output[i]&0xff);
 					sha1_byte[2] = '\0';
 			      		strcat(sha1, sha1_byte);
 				}
@@ -388,6 +388,8 @@ struct file_data *create_file_data_struct (struct file *filp)
   set_fs (KERNEL_DS);
   err = vfs_read (filp, fdata->buff, read_size, &filp->f_pos);
   set_fs (oldfs);
+ 	
+  fdata->bytes_read = err;  
 
   if (err < 0)
     {
@@ -444,6 +446,7 @@ read_virus_def (void)
   err = vfs_read (dbfilp, vir_def->buff, fsize, &dbfilp->f_pos);
   set_fs (oldfs);
 
+
   if (err < 0)
     {
       printk (KERN_ERR
@@ -492,6 +495,8 @@ get_file_data (struct file_data *fdata, struct file *filp)
   set_fs (KERNEL_DS);
   err = vfs_read (filp, fdata->buff, read_size, &filp->f_pos);
   set_fs (oldfs);
+
+  fdata->bytes_read = err;
 
   if (err < 0)
     {
