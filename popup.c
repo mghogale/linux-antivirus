@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-#define DUMMY_PATH "/root/.log"
+#define DUMMY_PATH "/root/dummy"
 
 /* This is a hack used for displaying graphical pop-up.
    It continously checks the status of file size and if changed then 
@@ -20,7 +20,7 @@ main (int argc, char *argv[])
   long long curr_size = 0;
   FILE *file_pointer = NULL;
   char buffer[4096], cmd[4150];
-  
+  int size = 0;
 if (stat (DUMMY_PATH, &sb) == -1)
     {
       perror ("GRAPHICAL POPUP: Could not stat");
@@ -29,20 +29,20 @@ if (stat (DUMMY_PATH, &sb) == -1)
 
   while (1)
     {
-      if (stat (DUMMY_PATH, &sb) == -1)
+
+          file_pointer = fopen (DUMMY_PATH, "r");
+          if (file_pointer == NULL)
+            {
+              printf ("\nCannot open dummy file");
+              goto out;
+            }
+
+	fseek(file_pointer, 0, SEEK_END); // seek to end of file
+	size = ftell(file_pointer); // get current file pointer
+	fseek(file_pointer, 0, SEEK_SET); // seek back to beginning of file
+
+      if (size > 0)
 	{
-	  perror ("GRAPHICAL POPUP: Could not stat");
-	  exit (EXIT_SUCCESS);
-	}
-      curr_size = (long long) sb.st_size;
-      if (curr_size > 0)
-	{
-	  file_pointer = fopen (DUMMY_PATH, "r");
-	  if (file_pointer == NULL)
-	    {
-	      printf ("\nCannot open dummy file");
-	      goto out;
-	    }
 
 	  while (fgets (buffer, 4096, (FILE *) file_pointer))
 	    {
@@ -71,7 +71,7 @@ if (stat (DUMMY_PATH, &sb) == -1)
 	}
     }
 out:
-  if (file_pointer)
-    fclose (file_pointer);
+  if(file_pointer)
+	fclose(file_pointer);
   exit (EXIT_SUCCESS);
 }

@@ -15,7 +15,7 @@
 
 #define VIRUS_DB_FILE "/root/virus.db"
 #define WHITELIST_DB_FILE "/root/whitelist.db"
-#define DUMMY_FILE "/root/.log"
+#define DUMMY_FILE "/root/dummy"
 
 #define TMP_TEST_PATH "/home/"
 #define TMP_SIZE 10
