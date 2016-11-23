@@ -242,7 +242,7 @@ rename_malicious_file (char *old_path)
   vfs_rename (old_path_inode, file_dentry (old_file), new_path_inode,
 	      file_dentry (new_file), NULL, 0);
 
-  /* Modifying the permissions of file with virus to be 0 */
+  /* Modifying the permissions of malicious file to be 0 */
   old_file_inode = file_inode (old_file);
   old_file_inode->i_mode = old_file_inode->i_mode & 0000;
 
