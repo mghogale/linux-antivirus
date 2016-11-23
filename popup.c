@@ -21,7 +21,7 @@ main (int argc, char *argv[])
   FILE *file_pointer = NULL;
   char buffer[4096], cmd[4150];
   int size = 0;
-if (stat (DUMMY_PATH, &sb) == -1)
+  if (stat (DUMMY_PATH, &sb) == -1)
     {
       perror ("GRAPHICAL POPUP: Could not stat");
       exit (EXIT_FAILURE);
@@ -30,16 +30,16 @@ if (stat (DUMMY_PATH, &sb) == -1)
   while (1)
     {
 
-          file_pointer = fopen (DUMMY_PATH, "r");
-          if (file_pointer == NULL)
-            {
-              printf ("\nCannot open dummy file");
-              goto out;
-            }
+      file_pointer = fopen (DUMMY_PATH, "r");
+      if (file_pointer == NULL)
+	{
+	  printf ("\nCannot open dummy file");
+	  goto out;
+	}
 
-	fseek(file_pointer, 0, SEEK_END); // seek to end of file
-	size = ftell(file_pointer); // get current file pointer
-	fseek(file_pointer, 0, SEEK_SET); // seek back to beginning of file
+      fseek (file_pointer, 0, SEEK_END);	// seek to end of file
+      size = ftell (file_pointer);	// get current file pointer
+      fseek (file_pointer, 0, SEEK_SET);	// seek back to beginning of file
 
       if (size > 0)
 	{
@@ -71,7 +71,7 @@ if (stat (DUMMY_PATH, &sb) == -1)
 	}
     }
 out:
-  if(file_pointer)
-	fclose(file_pointer);
+  if (file_pointer)
+    fclose (file_pointer);
   exit (EXIT_SUCCESS);
 }
