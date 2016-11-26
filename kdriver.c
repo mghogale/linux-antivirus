@@ -203,6 +203,21 @@ is_flag_valid (int flags)
 }
 
 
+bool should_skip_file(char *kpath){
+	bool ret = false;
+	if(strcmp(DUMMY_FILE,kpath) == 0){
+		ret = true;
+	}
+	if(strcmp(VIRUS_DB_FILE, kpath) == 0){
+        	ret = true;
+  	}
+	if (strstr (kpath, "/proc"))
+    	{
+	      ret = true;
+    	}
+	return ret;
+}
+
 bool
 is_file_malicious (const char *path)
 {
@@ -225,6 +240,11 @@ is_file_malicious (const char *path)
     }
 
   printk ("\nKpath = %s\n", kpath);
+ 
+  if(should_skip_file(kpath)){
+	is_malicious = false;
+	goto out;
+  }
 
   if (strstr (kpath, VIRUS_FILE_EXTENSION))
     {

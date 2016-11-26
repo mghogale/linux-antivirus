@@ -17,8 +17,6 @@
 #define WHITELIST_DB_FILE "/root/whitelist.db"
 #define DUMMY_FILE "/root/dummy"
 
-#define TMP_TEST_PATH "/home/"
-#define TMP_SIZE 10
 #define BUFFER_SIZE 4096
 #define DEF_SIZE 1
 #define SHA1_LENGTH 20
