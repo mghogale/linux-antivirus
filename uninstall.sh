@@ -8,8 +8,8 @@ rm -f /usr/local/bin/antivirus-update
 rm -f /usr/local/bin/antivirus-scan
 cp /dev/null /root/dummy
 
-rm -rf /home/.InformationIcon.png
-rm -rf /home/.CheckMark.png
+rm -f /home/.InformationIcon.png
+rm -f /home/.CheckMark.png
 cp InformationIcon.png /home/.InformationIcon.png
 notify-send -i /home/.InformationIcon.png 'Antivirus Uninstalled!'
-rm -rf /home/.InformationIcon.png
+rm -f /home/.InformationIcon.png

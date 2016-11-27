@@ -1,7 +1,7 @@
 rmmod antivirus.ko
 touch /root/dummy
 
-gcc user.c -o user
+gcc user.c -o antivirus-scan
 
 virus_file="/root/virus.db"
 whitelist_file="/root/whitelist.db"
@@ -11,7 +11,6 @@ then
         cp 'antivirus.properties' '/tmp/'
         antivirus-update
 	cp 'antivirus-scan' '/usr/local/bin/'
-	cp 'user' '/usr/local/bin/'
 fi
 
 pkill popup
