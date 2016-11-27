@@ -6,19 +6,42 @@
 #include <stdint.h>
 #include <unistd.h>
 #include <fcntl.h>
+int counter = 0;
 
+/* scans each file by calling open */
 static int trace_files(const char *fpath, const struct stat *sb, int tflag, struct FTW *ftwbuf)
 {
-	printf("Scanning file %s ...", fpath);
 	int fd = open(fpath, O_RDONLY);
+	
+	printf("\nScanning file '%s'...",fpath);
 	if(fd==-1)
-		printf("Error in opening\n");
-	else
-		printf("File scanned...\n");
+	{
+		printf("Error in opening");
+		return -1;
+	}
 
     	return 0;          
 }
 
+/* checks if files have been renamed to .virus */
+static int check_virus(const char *fpath, const struct stat *sb, int tflag, struct FTW *ftwbuf)
+{
+	char *pattern = ".virus";
+	char *new_string = NULL;
+	
+	if(strstr(fpath, pattern) != NULL) 
+	{
+		new_string = malloc(strlen(fpath)-6);
+		memcpy(new_string, fpath, strlen(fpath)-6);
+    		new_string[strlen(fpath)-6] = '\0';
+		printf("%s\n", new_string);
+		++counter;	 
+	}
+
+    	return 0;          
+}
+
+/* main program for scanning files */
 int main(int argc, char *argv[])
 {
 	int flags = 0;
@@ -35,6 +58,10 @@ int main(int argc, char *argv[])
 	        exit(EXIT_FAILURE);
 	}
 
+	printf("\n\nFound following files containing virus:\n\n");
+	nftw((argc < 2) ? "." : argv[1], check_virus, 20, flags);
+	if(counter!=0)
+		printf("\nThe above files have been renamed with a .virus extension\n\n");
+
     	exit(EXIT_SUCCESS);
 }
-

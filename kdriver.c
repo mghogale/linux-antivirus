@@ -47,11 +47,11 @@ static int get_system_call_table(char *kern_ver)
 
 	oldfs = get_fs();
 	set_fs(KERNEL_DS);
-	printk(KERN_EMERG "\nKernel version: %s", kern_ver);
+	printk(KERN_INFO "\nKernel version: %s", kern_ver);
 	filename = kmalloc(filename_length, GFP_KERNEL);
 
 	if (filename == NULL) {
-		printk(KERN_EMERG
+		printk(KERN_INFO
 		       "\nkmalloc failed on System.map-<version> filename allocation");
 		return -1;
 	}
@@ -72,7 +72,7 @@ static int get_system_call_table(char *kern_ver)
 	 */
 	f = filp_open(filename, O_RDONLY, 0);
 	if (IS_ERR(f) || (f == NULL)) {
-		printk(KERN_EMERG
+		printk(KERN_INFO
 		       "\nError opening System.map-<version> file: %s",
 		       filename);
 		return -1;
@@ -114,7 +114,7 @@ static int get_system_call_table(char *kern_ver)
 				/* value is written in hex format */
 				kstrtoul(sys_string, 16,
 					 (unsigned long *)&syscall_table);
-				printk(KERN_EMERG "\nsyscall_table retrieved");
+				printk(KERN_INFO "\nsyscall_table retrieved");
 				kfree(sys_string);
 				break;
 			}
@@ -228,15 +228,14 @@ bool is_file_malicious(const char *path)
 		goto out;
 	}
 
-	printk("\nKpath = %s", kpath);
-
 	if (should_skip_file(kpath)) {
 		is_malicious = false;
 		goto out;
 	}
-
+	printk("\n**************************************************************");
+	printk("\nscanning file %s", kpath);
 	if (strstr(kpath, VIRUS_FILE_EXTENSION)) {
-		printk("\nFile %s is already virus. Aborting scan", kpath);
+		printk("\nfile %s is already virus. Aborting scan", kpath);
 		is_malicious = true;
 		goto out;
 	}
@@ -252,7 +251,7 @@ bool is_file_malicious(const char *path)
 	input_file_inode = file_inode(filp);
 	input_file_mode = input_file_inode->i_mode;
 	if (!S_ISREG(input_file_mode)) {
-		printk(KERN_INFO "\nNot a regular file");
+		printk(KERN_INFO "\nfile is not a regular file");
 		goto out;
 	}
 
@@ -268,10 +267,10 @@ bool is_file_malicious(const char *path)
 	/* checking if the file is white listed */
 	ret_val = is_white_listed(filp, fdata);
 	if (ret_val) {
-		printk("\nFile is white listed!");
+		printk("\nfile is white listed!");
 		goto out_close;
 	} else {
-		printk("\nFile is not white listed.. checking for black list!");
+		printk("\nfile is not white listed.. checking for black list!");
 	}
 
 	/* moving vdef here since we should not read virus definitions if file is white listed */
@@ -291,7 +290,7 @@ bool is_file_malicious(const char *path)
 
 	if (fdata == NULL) {
 		printk(KERN_ERR
-		       "\nError occured while reading from file to scan");
+		       "\nerror occured while reading from file to scan");
 		/* if kernel cant read from this file then user also cant, hence false */
 		is_malicious = false;
 		goto out_close;
@@ -300,14 +299,16 @@ bool is_file_malicious(const char *path)
 	err = scan(filp, fdata, vdef);
 
 	if (err > 0) {
-		printk("\nFile contains virus");
-		printk("\nRenaming file to .virus");
+		printk("\nfile contains virus");
+		printk("\nrenaming file to .virus");
 		is_malicious = true;
 		is_renamed = rename_malicious_file(kpath);
 		if (is_renamed)
-			printk("\nRenamed file to .virus");
+			printk("\nrenamed file to .virus");
 		else
-			printk("\nCouldn't rename file to .virus");
+			printk("\ncouldn't rename file to .virus");
+	}else {
+		printk("\nfile does not contain virus");
 	}
 
 	kfree(fdata);
@@ -326,8 +327,7 @@ bool is_file_malicious(const char *path)
 asmlinkage long new_open(const char __user * path, int flags, umode_t mode)
 {
 	bool is_malicious = false;
-	printk
-	    ("\n-------------------------------------------------------------------------------------------");
+
 	if (is_flag_valid(flags)) {
 		is_malicious = is_file_malicious(path);
 	}
@@ -344,10 +344,8 @@ new_execve(const char __user * filename,
 	   const char __user * const __user * envp)
 {
 	bool is_malicious = false;
-	printk
-	    ("\n----------------------------------------------------------------------------------------------");
+	printk("\n**************************************************************");
 	is_malicious = is_file_malicious(filename);
-	printk("\nExecve:");
 	if (!is_malicious)
 		return original_execve(filename, argv, envp);
 	else
@@ -433,13 +431,9 @@ bool read_white_list(void)
 static int __init on_init(void)
 {
 	char *kernel_version = kmalloc(MAX_VERSION_LEN, GFP_KERNEL);
-	printk(KERN_WARNING "\nLoading anti-virus!");
+	printk(KERN_WARNING "\ninstall: installing anti-virus!");
 	get_system_call_table(acquire_kernel_version(kernel_version));
-	printk(KERN_EMERG "\nsyscall table address: %p", syscall_table);
-	printk(KERN_EMERG "\nsizeof(unsigned long *): %zx",
-	       sizeof(unsigned long *));
-	printk(KERN_EMERG "\nsizeof(sys_call_table) : %zx",
-	       sizeof(syscall_table));
+	printk(KERN_INFO "\ninstall: hooking system-call table");
 	if (syscall_table != NULL) {
 		write_cr0(read_cr0() & (~0x10000));
 		/* get default impl func pointers */
@@ -451,7 +445,7 @@ static int __init on_init(void)
 		syscall_table[__NR_execve] = (unsigned long)&new_execve;
 		write_cr0(read_cr0() | 0x10000);
 
-		printk(KERN_EMERG "\n[+] onload: sys_call_table hooked");
+		printk(KERN_INFO "\ninstall: system call table hooked");
 		vdef = read_virus_def();
 		if (!read_white_list())
 			printk(KERN_ERR "\nCould not read white list");
@@ -460,10 +454,10 @@ static int __init on_init(void)
 		}
 
 	} else {
-		printk(KERN_EMERG "\n[-] onload: syscall_table is NULL");
+		printk(KERN_INFO "\ninstall: syscall_table is NULL");
 	}
 	kfree(kernel_version);
-
+	printk(KERN_INFO "\ninstall: antivirus is installed");
 	/*
 	 * A non 0 return means init_module failed; module can't be loaded.
 	 */
@@ -474,6 +468,7 @@ static void __exit on_exit(void)
 {
 	if (syscall_table != NULL) {
 
+		printk(KERN_INFO "\nuninstall: uninstalling anti-virus");
 		/* we are setting the 16th bit of the control register, this lets us write memory area */
 		write_cr0(read_cr0() & (~0x10000));
 
@@ -482,12 +477,13 @@ static void __exit on_exit(void)
 		syscall_table[__NR_execve] = (unsigned long)original_execve;
 		/* mark the area again as read only */
 		write_cr0(read_cr0() | 0x10000);
-		printk(KERN_EMERG "\n[+] on_exit: sys_call_table unhooked");
+		printk(KERN_INFO "\nuninstall: restoring settings...");
 		kfree(vdef);
 		kfree(head);
 	} else {
-		printk(KERN_EMERG "\n[-] on_exit: syscall_table is NULL");
+		printk(KERN_INFO "\nuninstall: syscall_table is NULL");
 	}
+	printk(KERN_INFO "\nuninstall: anti-virus uninstalled");
 	printk(KERN_INFO "\noops! you are no longer secured!");
 }
 

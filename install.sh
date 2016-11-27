@@ -1,3 +1,4 @@
+rmmod antivirus.ko
 touch /root/dummy
 
 virus_file="/root/virus.db"
@@ -13,7 +14,6 @@ pkill popup
 gcc -o popup popup.c
 ./popup &
 
-rmmod antivirus.ko
 insmod antivirus.ko
 rm -rf /home/.CheckMark.png
 cp CheckMark.png /home/.CheckMark.png

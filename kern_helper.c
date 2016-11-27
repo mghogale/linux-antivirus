@@ -88,6 +88,7 @@ bool is_white_listed(struct file * filp, struct file_data * fdata)
 	}
 	if (fdata->file_exhausted == 1) {
 		sha1 = compute_hash(fdata);
+		printk(KERN_INFO "\ncalculating SHA1 for file");
 		printk("\nSha1 : %s", sha1);
 	}
 
@@ -140,7 +141,7 @@ int scan(struct file *filp, struct file_data *fdata, struct virus_def *vir_def)
 			goto out;
 		}
 		if (err > 0) {
-			printk(KERN_INFO "\nSCAN: found a malicious file");
+			printk(KERN_INFO "\nfound a malicious file");
 			goto out;
 		}
 		start_offset++;
@@ -376,10 +377,8 @@ struct file_data *create_file_data_struct(struct file *filp)
 		goto out_free;
 	}
 
-	if (err < read_size) {
-		printk(KERN_INFO "\nFile is exhausted");
+	if (err < read_size)
 		fdata->file_exhausted = 1;
-	}
 
 	return fdata;
 
@@ -477,7 +476,7 @@ int get_file_data(struct file_data *fdata, struct file *filp)
 	}
 
 	if (err < read_size) {
-		printk(KERN_INFO "\nFile is exhausted");
+		/* file exhausted */
 		fdata->file_exhausted = 1;
 		fdata->size = err;
 	}
