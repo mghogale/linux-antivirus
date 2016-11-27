@@ -55,7 +55,6 @@ int main(int argc, char *argv[])
    	if (nftw((argc < 2) ? "." : argv[1], trace_files, 20, flags)== -1) 
 	{	        
 		perror("nftw");
-	        exit(EXIT_FAILURE);
 	}
 
 	nftw((argc < 2) ? "." : argv[1], check_virus, 20, flags);
