@@ -15,3 +15,6 @@ gcc -o popup popup.c
 
 rmmod antivirus.ko
 insmod antivirus.ko
+rm -rf /home/.CheckMark.png
+cp CheckMark.png /home/.CheckMark.png
+notify-send -i /home/.CheckMark.png 'Antivirus Installed Successfully!'
