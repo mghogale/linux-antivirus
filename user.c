@@ -12,10 +12,9 @@ int counter = 0;
 static int trace_files(const char *fpath, const struct stat *sb, int tflag, struct FTW *ftwbuf)
 {
 	int fd = open(fpath, O_RDONLY);
-	
-	printf("\nScanning path '%s'...",fpath);
+	printf("\nScanning '%s'...",fpath);
 	if(fd==-1)
-		return -1;
+		return 0;
 
     	return 0;          
 }
@@ -49,12 +48,15 @@ int main(int argc, char *argv[])
 
     	if (argc > 2 && strchr(argv[2], 'p') != NULL)
         	flags |= FTW_PHYS;   
+	printf("\n*********************************************\n");
+	printf("\nScanning path %s", argv[1]);
 
    	if (nftw((argc < 2) ? "." : argv[1], trace_files, 20, flags)== -1) 
 	{	        
 		perror("nftw");
 	}
 	
+	printf("\n\n*********************************************\n");
 	printf("\nAfter antivirus-scan:\n");
 	nftw((argc < 2) ? "." : argv[1], check_virus, 20, flags);
 
