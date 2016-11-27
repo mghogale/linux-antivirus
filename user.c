@@ -58,10 +58,12 @@ int main(int argc, char *argv[])
 	        exit(EXIT_FAILURE);
 	}
 
-	printf("\n\nFound following files containing virus:\n\n");
 	nftw((argc < 2) ? "." : argv[1], check_virus, 20, flags);
-	if(counter!=0)
-		printf("\nThe above files have been renamed with a .virus extension\n\n");
+
+	if(counter != 0)
+		printf("\nThe above files are malicious so they have been renamed with a .virus extension\n\n");
+	else
+		printf("\nNo virus found!\n");
 
     	exit(EXIT_SUCCESS);
 }

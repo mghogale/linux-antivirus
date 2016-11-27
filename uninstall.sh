@@ -5,6 +5,7 @@ rm -f /root/virus.db
 rm -f /root/whitelist.db
 rm -f /tmp/antivirus.properties
 rm -f /usr/local/bin/antivirus-update
+rm -f /usr/local/bin/antivirus-scan
 cp /dev/null /root/dummy
 
 rm -rf /home/.InformationIcon.png
