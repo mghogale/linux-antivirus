@@ -27,7 +27,7 @@ Files Added
 	              before invoking the original open/exec syscalls on loading the module. Also, reads the whitelist into a linked-list.
 	- linux-antivirus/kern_helper.c - code that computes the sha1 of the file, checks for the sha1 in the whitelist, scans the file for the patterns in 
 	                                  blacklist, renames the file if a virus is found and removes the permission.
-
+	- linux-antivirus/antivirus- scan.c - code to perform on-demand scanning. It gives a summary of the scanning.
 
 Implementation Details
 
@@ -66,8 +66,8 @@ Implementation Details
    - The open syscall handles the comparison logic and acts accordingly.
    
 6. Graphical popup for on access scanning:
-  - After the kernel detects any virus is a file, it copies the old file name which was referred and marked as a virus to a dummy file located at /root.
+  - After the kernel detects any virus in a file, it copies the old file name which was referred and marked as a virus to a dummy file located at /root.
   - The user process keeps checking the file for change in its size for every 1 sec. After we have called stat on the file first time the inode will be in-memory. 
     So afterwards we will get memory resident inode so this polling is not I/O heavy. Inotify/network-signal would not have worked as we are working deep in kernel 
     and all the notification mechanisms are bypassed here.
-  - If content found, it will used display the message to the user with the help of notify, in the form of a bubble to the right side of screen.
+  - If content found, it will be used to display the message to the user with the help of notify, in the form of a bubble to the right side of screen.
