@@ -13,12 +13,9 @@ static int trace_files(const char *fpath, const struct stat *sb, int tflag, stru
 {
 	int fd = open(fpath, O_RDONLY);
 	
-	printf("\nScanning file '%s'...",fpath);
+	printf("\nScanning path '%s'...",fpath);
 	if(fd==-1)
-	{
-		printf("Error in opening");
 		return -1;
-	}
 
     	return 0;          
 }
@@ -35,7 +32,8 @@ static int check_virus(const char *fpath, const struct stat *sb, int tflag, stru
 		memcpy(new_string, fpath, strlen(fpath)-6);
     		new_string[strlen(fpath)-6] = '\0';
 		printf("%s\n", new_string);
-		++counter;	 
+		++counter;
+		free(new_string);	 
 	}
 
     	return 0;          
@@ -56,7 +54,8 @@ int main(int argc, char *argv[])
 	{	        
 		perror("nftw");
 	}
-
+	
+	printf("\nAfter antivirus-scan:\n");
 	nftw((argc < 2) ? "." : argv[1], check_virus, 20, flags);
 
 	if(counter != 0)
