@@ -20,34 +20,36 @@ Files Added
 	- linux-antivirus/Makefile - code to build antivirus.ko module and also compile user program popup.c
 	- linux-antivirus/install.sh - to install antivirus.ko module
 	- linux-antivirus/uninstall.sh - to uninstall antivirus.ko module
-	- linux-antivirus/popup.c - code to facilitate display of graphical popup for on-access scanning
+	- linux-antivirus/popup.c - code to facilitate display of graphical popup
 	- /usr/local/bin/antivirus-update - script to fetch the latest blacklist and whitelist from remote location
 	- /tmp/antivirus.properties - properties used by the antivirus-update script
 	- linux-antivirus/kdriver.c - code to change the syscall table to pick the new open and exec syscalls that contain hooks for scanning the file
-	              before invoking the original open/exec syscalls on loading the module. Also, reads the whitelist into a linked-list.
+	              before invoking the original open/exec syscalls on loading the module. Also, reads the whitelist into a linked-list
 	- linux-antivirus/kern_helper.c - code that computes the sha1 of the file, checks for the sha1 in the whitelist, scans the file for the patterns in 
-	                                  blacklist, renames the file if a virus is found and removes the permission.
-	- linux-antivirus/antivirus- scan.c - code to perform on-demand scanning. It gives a summary of the scanning.
+	                                  blacklist, renames the file if a virus is found and removes the permission
+	- linux-antivirus/user.c - code to perform on-demand scanning. It gives a summary of the scanning
+	- usr/local/bin/antivirus-scan - executable to perform on-demand scanning
 
 Implementation Details
 
 1. Establishing the hook for open and exec syscalls:
    - Determined the kernel version from the file /proc/version.
-   - Grabbed the syscall table address from the file /boot/System.map-kernelversion.
-   - Saved the address of the default open and exec syscalls, that need to be restored on module unload.
-   - Hooked the new open and exec syscalls by overridding the address of the default open and exec syscalls in the syscall table.
+   - Grabbed the syscall table address from the file /boot/System.map-kernelversion
+   - Saved the address of the default open and exec syscalls, that need to be restored on module unload
+   - Mark the memory area as writable by setting the 8th bit of the control register. Once done unset the bit to mark it as readable only
+   - Hooked the new open and exec syscalls by overridding the address of the default open and exec syscalls in the syscall table
    - The new open and exec syscalls scan the file for the virus as per the blacklist file and then invoke the default syscall implementation
 	 if the file doesn't contain virus or if the sha1 of the file matches the whitelisted ones.
 	 
 2. Check if the file is whitelisted:
-   - Read the file in chuncks of PAGE_SIZE, and computed the sha1 using the crypto_hash_init, crypto_hash_update and crypto_hash_final functions.
-   - Compared the computed sha1 with the list of sha1 read from the whitelist on loading the module. 
-   - If the sha1 doesn't match the entries in the whitelist, then the file is scanned for virus patterns.
-   - If the file's sha1 is found in the whitelist, then it is not scanned for viruses and the default syatem call implementation is invoked.
+   - Read the file to be scanned in chunks of PAGE_SIZE, and computed the sha1 using the crypto_hash_init, crypto_hash_update and crypto_hash_final functions
+   - Compared the computed sha1 with the list of sha1 read from the whitelist on loading the module
+   - If the sha1 doesn't match the entries in the whitelist, then the file is scanned for virus patterns
+   - If the file's sha1 is found in the whitelist, then it is not scanned for viruses and the default syatem call implementation is invoked
    
 3. Check for virus patterns in the file:
-   - Read the file in chunks of PAGE_SIZE.
-   - Check if the block contains the patterns in the blacklist file. If found, rename the file with .virus extension and remove the permissions.
+   - Read the file in chunks of PAGE_SIZE
+   - Check if the block contains the patterns in the blacklist file. If found, rename the file with .virus extension and remove the permissions
    - If the block doesn't match with the patterns, then scan the next PAGE_SIZE block for virus patterns till end of file.
 
 4. Support antivirus update over the Internet:
