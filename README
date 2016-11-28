@@ -7,12 +7,18 @@ If a file's hash is on that list, then we don't scan it further. Both of these l
 In on-demand scanning, the user can run a program to scan a file, or a directory containing files, e.g. antivirus-scan /home/jack/Downloads. If a file is found to be infected we remove all permissions (e.g. chmod 000 virus), append a ".virus" string to the file's name and alert the user.
 In on-access scanning, when the user tries to execute, or open a file without having checked it with on-demand scanning, if the file is a virus, then the file is not opened and the permissions are removed and the file is renamed. In order to protect the user, the file is scanned before it is opened. In addition, a message is sent to the user-space and it is shown to the user, e.g. a graphical pop-up, that explains that the operation failed because a virus was detected.
 
+Requirements:
+This module only works with the 32-bit linux operating system with kernel version 4.0 onwards. We have tested our module on 
+Linux 14.04.05 32bit (TrustyTahr).
+
 How to compile and run
 	- execute make command inside the linux-antivirus folder
 	- run script install_module.sh to install antivirus.ko module 
 	- the script will download the blacklist and whitelist files when we load the module for the first time
 	- execute command antivirus-scan on a file or folder that you need to scan on demand
 	- every file that you access is scanned for virus before opening/ executing it
+	- If you want to invoke ondemand scanning, just execute commnad 'antivirus-scan path-to-scan'. 
+	  This will scan all files in given path and show the list of files that were containing virus.
 	- run script antivirus-update to update the blacklist and whitelist
 	- the module needs to be reinstalled for the new pattern to be taken into consideration while scanning
 	
